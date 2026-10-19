@@ -561,7 +561,7 @@ export function DashboardPage() {
             <p className="mt-1.5 text-xs text-neutral-400">Basic access with limited credits</p>
             <Link
               to="/pricing"
-              className="mt-4 block w-full text-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2 text-xs font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20 cursor-pointer"
+              className="mt-4 block w-full text-center rounded-lg border border-[#ff7a1a]/30 bg-[#ff7a1a]/10 py-2 text-xs font-semibold text-[#ff7a1a] transition-all hover:bg-[#ff7a1a] hover:text-black cursor-pointer shadow-[0_0_15px_-4px_rgba(255,122,26,0.25)]"
             >
               Upgrade Plan
             </Link>
@@ -577,7 +577,7 @@ export function DashboardPage() {
               <span className="font-mono text-xs text-neutral-500">of 5.0 GB</span>
             </div>
             <div className="mt-4 h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-emerald-500 w-[2%] rounded-full transition-all" />
+              <div className="h-full bg-[#ff7a1a] w-[2%] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.5)] transition-all" />
             </div>
           </div>
 
@@ -591,7 +591,7 @@ export function DashboardPage() {
               <span className="font-mono text-xs text-neutral-500">of 60 min</span>
             </div>
             <div className="mt-4 h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-[#ff7a00] w-[0%] rounded-full transition-all" />
+              <div className="h-full bg-[#ff7a1a] w-[0%] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.5)] transition-all" />
             </div>
           </div>
         </div>

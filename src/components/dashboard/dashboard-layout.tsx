@@ -130,7 +130,7 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
         <div className="rounded-xl border border-neutral-800/80 bg-[#121212] p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold text-white tracking-wide">FREE</span>
-            <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-emerald-400 border border-emerald-500/20 uppercase">
+            <span className="rounded-md bg-[#ff7a1a]/10 px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[#ff7a1a] border border-[#ff7a1a]/25 uppercase font-mono">
               MONTHLY
             </span>
           </div>
@@ -138,18 +138,18 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
           <div className="space-y-2 text-[0.75rem]">
             <div className="flex justify-between text-neutral-400">
               <span>Storage</span>
-              <span className="text-emerald-400 font-mono text-xs">&lt; 0.1 GB / 5.0 GB</span>
+              <span className="text-white/80 font-mono text-xs">&lt; 0.1 GB / 5.0 GB</span>
             </div>
             <div className="flex justify-between text-neutral-400">
               <span>Transcription</span>
-              <span className="text-neutral-200 font-mono text-xs">4.3 mins left</span>
+              <span className="text-white/80 font-mono text-xs">4.3 mins left</span>
             </div>
             <div className="mt-1.5 flex h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-emerald-500 w-[15%] rounded-full" />
+              <div className="h-full bg-[#ff7a1a] w-[15%] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.4)]" />
             </div>
             <div className="flex justify-between text-neutral-400 pt-0.5">
               <span>Audio Clean</span>
-              <span className="text-neutral-200 font-mono text-xs">0 / 3</span>
+              <span className="text-white/80 font-mono text-xs">0 / 3</span>
             </div>
           </div>
         </div>
