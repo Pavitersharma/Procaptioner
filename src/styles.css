@@ -1,0 +1,394 @@
+@import url("https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=Space+Grotesk:wght@500;600;700&display=swap");
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-brand-pro: "Exo 2", sans-serif;
+  --font-brand-captioner: "Space Grotesk", sans-serif;
+  --color-brand-orange: #ff7a1a;
+  --color-brand-orange-hover: #ff5b00;
+  --color-brand-dark-bg: #0b0b0b;
+  --color-brand-dark-surface: #141414;
+  --color-brand-light-text: #f5f5f5;
+  --color-brand-dark-text: #151515;
+  --color-brand-muted: #9ca3af;
+}
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ProCaptioner — dark-first cinematic system. :root IS the dark theme. */
+:root {
+  --radius: 0.25rem;
+
+  /* Centralized Brand Identity Tokens */
+  --brand-orange: #ff7a1a;
+  --brand-orange-hover: #ff5b00;
+  --brand-dark-bg: #0b0b0b;
+  --brand-dark-surface: #141414;
+  --brand-light-text: #f5f5f5;
+  --brand-dark-text: #151515;
+  --brand-muted-text: #9ca3af;
+  --brand-border: rgba(156, 163, 175, 0.2);
+
+  --surface-0: oklch(0.13 0.002 60);
+  --surface-1: oklch(0.165 0.003 60);
+  --surface-2: oklch(0.205 0.004 60);
+  --surface-3: oklch(0.245 0.005 60);
+
+  --background: var(--surface-0);
+  --foreground: oklch(0.97 0.004 80);
+  --card: var(--surface-1);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface-2);
+  --popover-foreground: var(--foreground);
+
+  /* Electric amber-coral accent aligned with Brand Orange */
+  --accent: #ff7a1a;
+  --accent-foreground: #0b0b0b;
+  --accent-soft: #ff9233;
+  --accent-deep: #e05e00;
+
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-foreground);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-2);
+  --muted-foreground: oklch(0.66 0.008 70);
+  --destructive: oklch(0.62 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: var(--accent);
+
+  --chart-1: var(--accent);
+  --chart-2: oklch(0.7 0.1 200);
+  --chart-3: oklch(0.8 0.12 100);
+  --chart-4: oklch(0.55 0.05 60);
+  --chart-5: oklch(0.85 0.06 60);
+  --sidebar: var(--surface-1);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--accent-foreground);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(1 0 0 / 9%);
+  --sidebar-ring: var(--accent);
+
+  --grain-opacity: 0.035;
+}
+
+/* Editorial warm light mode */
+.light {
+  /* Centralized Brand Identity Tokens (light mode) */
+  --brand-orange: #ff7a1a;
+  --brand-orange-hover: #ff5b00;
+  --brand-dark-bg: #0b0b0b;
+  --brand-dark-surface: #141414;
+  --brand-light-text: #f5f5f5;
+  --brand-dark-text: #151515;
+  --brand-muted-text: #9ca3af;
+  --brand-border: rgba(156, 163, 175, 0.2);
+
+  --surface-0: oklch(0.972 0.006 85);
+  --surface-1: oklch(0.945 0.008 85);
+  --surface-2: oklch(0.915 0.009 85);
+  --surface-3: oklch(0.875 0.01 85);
+  --background: var(--surface-0);
+  --foreground: oklch(0.19 0.006 60);
+  --card: oklch(0.985 0.005 85);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.985 0.005 85);
+  --popover-foreground: var(--foreground);
+  --accent: #ff7a1a;
+  --accent-foreground: #ffffff;
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-foreground);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--foreground);
+  --muted: var(--surface-2);
+  --muted-foreground: oklch(0.46 0.01 65);
+  --border: oklch(0.19 0.006 60 / 12%);
+  --input: oklch(0.19 0.006 60 / 16%);
+  --grain-opacity: 0.02;
+}
+
+@theme inline {
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-deep: var(--accent-deep);
+}
+
+/* ─── ProCaptioner Brand Typography & Logo Styling ───────────────────────────── */
+
+.brand-logo {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.brand-logo__pro {
+  font-family: var(--font-brand-pro, "Exo 2", sans-serif);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--brand-orange, #ff7a1a);
+  letter-spacing: -0.035em;
+  display: inline-block;
+  transition:
+    color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo__captioner {
+  font-family: var(--font-brand-captioner, "Space Grotesk", sans-serif);
+  font-weight: 600;
+  font-style: normal;
+  color: var(--brand-light-text, #f5f5f5);
+  letter-spacing: -0.045em;
+  display: inline-block;
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.brand-logo:hover .brand-logo__pro {
+  color: var(--brand-orange-hover, #ff5b00);
+}
+
+/* Light / dark contextual adapting */
+.light .brand-logo__captioner,
+[data-theme="light"] .brand-logo__captioner,
+.brand-logo--light .brand-logo__captioner {
+  color: var(--brand-dark-text, #151515);
+}
+
+.brand-logo--dark .brand-logo__captioner {
+  color: var(--brand-light-text, #f5f5f5);
+}
+
+.brand-monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+@utility text-display {
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.88;
+  text-wrap: balance;
+}
+
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@utility hairline {
+  border-top: 1px solid var(--border);
+}
+
+@utility reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  &[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vyra-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+@keyframes vyra-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes vyra-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ─── Local @font-face declarations ────────────────────────────────────────── */
+
+@font-face {
+  font-family: "Ephesis";
+  src: url("/fonts/Ephesis/Ephesis-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Lora";
+  src: url("/fonts/Lora/Lora-VariableFont_wght.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Lora";
+  src: url("/fonts/Lora/Lora-Italic-VariableFont_wght.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Playwrite CU Guides";
+  src: url("/fonts/Playwrite_CU_Guides/PlaywriteCUGuides-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* ─── Editor-specific utilities ─────────────────────────────────────────────── */
+
+/* Minimal scrollbar for editor panels */
+.editor-panel ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.editor-panel ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.editor-panel ::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 10%);
+  border-radius: 9999px;
+}
+.editor-panel ::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 20%);
+}
+
+/* Ensure stroked text always paints stroke behind fill to avoid variable font contour artifacts */
+[style*="WebkitTextStroke"],
+[style*="-webkit-text-stroke"] {
+  paint-order: stroke fill;
+}

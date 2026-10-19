@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="220" viewBox="0 0 1000 220" role="img" aria-labelledby="title desc">
+<title id="title">ProCaptioner logo — light mode</title>
+<desc id="desc">Orange stylized P and play mark, with PRO in orange and CAPTIONER in contrasting text.</desc>
+<defs><linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6A00"/><stop offset="1" stop-color="#FF8A1D"/></linearGradient></defs>
+<rect width="1000" height="220" rx="18" fill="#FFFFFF"/>
+<g transform="translate(32 46) scale(1.15)">
+<g id="mark" stroke="none" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M27 18 H66 C74 18 79 22 84 29 L98 47 C104 55 103 64 96 71 L81 85 C76 90 70 92 62 92 H43 L31 105 C27 109 21 106 21 101 V83 C21 78 25 74 30 74 H61 C64 74 66 73 69 70 L80 60 C83 57 83 54 80 51 L68 35 C66 32 63 31 59 31 H27 C20 31 16 28 16 24 C16 20 20 18 27 18 Z" fill="url(#accent)"/>
+  <path d="M49 44 L68 56 C71 58 71 61 68 63 L49 76 C45 79 41 77 41 72 V48 C41 43 45 41 49 44 Z" fill="#101010"/>
+  <path d="M7 45 H28 M4 60 H26 M10 75 H27" stroke="url(#accent)" stroke-width="8"/>
+</g>
+</g>
+<text x="175" y="128" font-family="Arial, Helvetica, sans-serif" font-size="67" font-weight="800" letter-spacing="1.2" fill="#FF7414">PRO</text>
+<text x="326" y="128" font-family="Arial, Helvetica, sans-serif" font-size="67" font-weight="800" letter-spacing="1.2" fill="#151515">CAPTIONER</text>
+<text x="179" y="164" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="500" letter-spacing="6" fill="#77736F">CAPTIONS THAT BRING YOUR VIDEOS TO LIFE</text>
+</svg>

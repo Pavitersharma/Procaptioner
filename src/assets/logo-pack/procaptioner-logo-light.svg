@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="190" viewBox="0 0 980 190" role="img" aria-label="ProCaptioner logo"><defs><linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FF5B00"/></linearGradient></defs><g transform="translate(20 30) scale(1.18)"><g stroke-linejoin="round" stroke-linecap="round">
+<path d="M24 13 H55 C62 13 68 16 73 22 L87 39 C94 48 93 59 84 67 L68 81 C64 85 59 87 52 87 H40 L28 100 C24 104 18 101 18 96 V75 C18 70 22 66 27 66 H51 C54 66 57 65 59 62 L70 52 C73 49 73 47 70 44 L58 29 C56 27 54 26 50 26 H24 C17 26 13 23 13 19 C13 15 17 13 24 13 Z" fill="url(#orange)"/>
+<path d="M43 39 L61 50 L43 62 Z" fill="#FFFFFF"/>
+<path d="M7 39 H25 M4 52 H23 M9 65 H24" fill="none" stroke="url(#orange)" stroke-width="7.5"/>
+</g></g><text x="145" y="106" font-family="Inter, Arial, sans-serif" font-size="69" font-weight="750" letter-spacing="-2.5" fill="#FF7414">Pro</text><text x="260" y="106" font-family="Inter, Arial, sans-serif" font-size="69" font-weight="750" letter-spacing="-2.5" fill="#111111">Captioner</text></svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="pro-grad-t" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8A1D"/>
+      <stop offset="100%" stop-color="#FF5B00"/>
+    </linearGradient>
+  </defs>
+  <g id="monogram-transparent">
+    <!-- P in Pro Orange -->
+    <path d="M 13 49 L 18.5 15 H 31.5 C 38.5 15 42.5 18.8 41 25 C 39.7 30.5 35 34 29 34 H 22 L 18.8 49 Z M 24.2 27.5 H 29 C 32.5 27.5 34.8 25.8 35.4 23.2 C 36 20.8 34.2 19.5 31 19.5 H 25.8 Z" fill="url(#pro-grad-t)"/>
+    <!-- C in currentColor or Off-White -->
+    <path d="M 52.5 25.5 L 47 28 C 45.4 25.2 42.4 23.5 38.5 23.5 C 32.2 23.5 27.6 28.5 29 35.5 C 30.2 41.2 35 44.5 40.5 44.5 C 44.5 44.5 47.8 42.5 49.8 39.2 L 55 42 C 52 47 46.8 50.5 39.8 50.5 C 30.5 50.5 23.5 44.2 22 34.8 C 20.2 25.5 27.2 18 38.5 18 C 44.8 18 49.8 21.2 52.5 25.5 Z" fill="currentColor"/>
+  </g>
+</svg>
