@@ -5,9 +5,9 @@ import { Footer } from "@/components/vyra/footer";
 import { Cursor } from "@/components/vyra/cursor";
 import { SectionTag } from "@/components/vyra/primitives";
 
-const title = "Pricing — ProCaptioner AI captions and subtitles";
+const title = "Pricing — ProCaptioner Creator Pro Plan";
 const description =
-  "Free, Creator, Pro and Studio plans for AI transcription, captions, translation and video export. Pay less per minute as you create more.";
+  "One simple plan: Creator Pro at ₹199/month. Explore every font and template before subscribing. Pay when you're ready to export watermark-free videos.";
 
 export const Route = createFileRoute("/pricing")({
   head: () => ({
@@ -25,14 +25,17 @@ export const Route = createFileRoute("/pricing")({
 
 const FAQ = [
   [
-    "What counts as a minute?",
-    "Source video duration, counted once. Re-renders and style changes are free.",
+    "Can I preview all fonts and templates for free?",
+    "Yes! You can explore and preview all 30+ styles, custom colors, animations, and edit your footage inside the studio before subscribing.",
   ],
   [
-    "Can I export SRT and VTT?",
-    "On every paid plan, including burned-in captions and per-word JSON.",
+    "What video length is supported in Creator Pro?",
+    "Creator Pro supports videos up to 3 minutes (180 seconds) per clip with 5 GB project storage allowance.",
   ],
-  ["Do unused minutes roll over?", "Yearly plans roll over up to one month of unused minutes."],
+  [
+    "How does video export work?",
+    "Once subscribed to Creator Pro for ₹199/month, you unlock high-quality video exports without watermarks, along with SRT and VTT subtitle downloads.",
+  ],
 ];
 
 function PricingPage() {
@@ -44,10 +47,10 @@ function PricingPage() {
         <section className="px-5 pt-36 pb-4 md:px-10 md:pt-48">
           <div className="mx-auto max-w-[1280px]">
             <SectionTag index="—">Pricing</SectionTag>
-            <h1 className="text-display mt-8 max-w-4xl text-[clamp(2.8rem,8vw,7rem)]">
-              Create more.
+            <h1 className="text-display mt-8 max-w-4xl text-[clamp(2.8rem,7vw,6.5rem)] font-extrabold tracking-tight text-white leading-tight">
+              One simple plan.
               <br />
-              <span className="text-muted-foreground">Pay less per minute.</span>
+              <span className="text-muted-foreground">Subscribe when ready to export.</span>
             </h1>
           </div>
         </section>
@@ -56,8 +59,8 @@ function PricingPage() {
           <div className="mx-auto grid max-w-[1280px] gap-px border border-border bg-border px-0 md:grid-cols-3">
             {FAQ.map(([q, a]) => (
               <div key={q} className="bg-surface-0 p-7">
-                <p className="text-lg font-medium tracking-tight">{q}</p>
-                <p className="mt-3 text-sm text-muted-foreground">{a}</p>
+                <p className="text-lg font-medium tracking-tight text-white">{q}</p>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{a}</p>
               </div>
             ))}
           </div>

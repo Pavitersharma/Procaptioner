@@ -13,6 +13,7 @@ import {
   Redo2,
   PanelLeftOpen,
   PanelRightOpen,
+  Zap,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ import { InspectorPanel } from "@/components/editor/inspector-panel";
 import { TimelinePanel } from "@/components/editor/timeline-panel";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
 import { NotFoundComponent } from "@/components/not-found";
+import { CREATOR_PRO_FEATURES } from "@/components/vyra/pricing";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WordInfo {
@@ -141,6 +143,9 @@ export function DashboardPage() {
 
   // Active template selected from /templates box view
   const [activeTemplateName, setActiveTemplateName] = useState<string | null>(null);
+
+  // Upgrade Plan modal
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -605,12 +610,13 @@ export function DashboardPage() {
             </p>
             <p className="mt-2 text-2xl font-bold text-white">Free</p>
             <p className="mt-1.5 text-xs text-neutral-400">Basic access with limited credits</p>
-            <Link
-              to="/pricing"
+            <button
+              type="button"
+              onClick={() => setShowUpgradeModal(true)}
               className="mt-4 block w-full text-center rounded-lg border border-[#ff7a1a]/30 bg-[#ff7a1a]/10 py-2 text-xs font-semibold text-[#ff7a1a] transition-all hover:bg-[#ff7a1a] hover:text-black cursor-pointer shadow-[0_0_15px_-4px_rgba(255,122,26,0.25)]"
             >
-              Upgrade Plan
-            </Link>
+              Upgrade to Creator Pro
+            </button>
           </div>
 
           {/* Storage Used */}
@@ -857,6 +863,94 @@ export function DashboardPage() {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Creator Pro Upgrade Modal ── */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setShowUpgradeModal(false)} />
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/[0.14] bg-gradient-to-b from-[#131316] via-[#0e0e11] to-[#08080a] p-6 sm:p-8 z-10 shadow-2xl space-y-6">
+            {/* Ambient Brand Glow */}
+            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-[#ff7a1a]/15 blur-3xl pointer-events-none" />
+
+            {/* Header */}
+            <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.08] pb-6">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-[#ff7a1a]/30 bg-[#ff7a1a]/10 px-3 py-0.5 font-mono text-[0.65rem] font-bold tracking-widest text-[#ff7a1a] uppercase shadow-sm shadow-orange-500/10">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>One Simple Plan</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Creator Pro
+                </h3>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-mono text-3xl sm:text-4xl font-black text-white">
+                    ₹199
+                  </span>
+                  <span className="font-mono text-xs sm:text-sm text-neutral-400">
+                    /month
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-400 max-w-md leading-relaxed">
+                  Explore every style. Create your video. Subscribe when you&apos;re ready to export.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(false)}
+                className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Features Checklist */}
+            <div className="relative z-10 divide-y divide-white/[0.06]">
+              {CREATOR_PRO_FEATURES.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.title}
+                    className="flex items-start justify-between gap-3 py-3 sm:py-3.5 first:pt-0 last:pb-0 group"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[#ff7a1a]">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-xs sm:text-sm text-white">
+                          {item.title}
+                        </p>
+                        <p className="mt-0.5 text-[0.72rem] text-neutral-400">
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full border border-[#ff7a1a]/50 bg-[#ff7a1a]/15 text-[#ff7a1a] mt-0.5 shadow-sm shadow-orange-500/10">
+                      <Check className="h-3 w-3 stroke-[2.5]" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* CTA & Note */}
+            <div className="relative z-10 pt-4 border-t border-white/[0.08] space-y-3">
+              <Link
+                to="/signup"
+                onClick={() => setShowUpgradeModal(false)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7a1a] py-3.5 px-6 font-mono text-xs sm:text-sm font-bold tracking-[0.14em] text-black uppercase shadow-lg shadow-orange-500/25 transition-all hover:bg-[#ff5b00] active:scale-[0.98] cursor-pointer"
+              >
+                <Zap className="h-4 w-4" />
+                <span>Unlock Export — ₹199/month</span>
+              </Link>
+              <p className="text-center text-[0.68rem] text-neutral-500">
+                ₹199 billed monthly. Subscription cancellation and renewal terms should be shown clearly at checkout.
+              </p>
             </div>
           </div>
         </div>
