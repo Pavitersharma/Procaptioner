@@ -1,36 +1,19 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
 import {
   Home,
-  PlayCircle,
-  CreditCard,
   Sparkles,
-  Gift,
   HelpCircle,
   Settings,
   Search,
-  ArrowUpRight,
-  MonitorDown,
   ChevronDown,
   LogOut,
-  Sliders,
-  Apple,
-  AppWindow,
   Menu,
   X,
 } from "lucide-react";
 
-export type DashboardTab =
-  | "home"
-  | "editor"
-  | "templates"
-  | "tutorials"
-  | "subscription"
-  | "plugins"
-  | "refer"
-  | "support"
-  | "settings";
+export type DashboardTab = "home" | "templates" | "support" | "settings";
 
 interface DashboardLayoutProps {
   activeTab: DashboardTab;
@@ -39,14 +22,9 @@ interface DashboardLayoutProps {
 
 const sidebarLinks = [
   { key: "home", label: "Home", icon: Home, to: "/dashboard" },
-  { key: "editor", label: "Studio Editor", icon: Sliders, to: "/editor" },
   { key: "templates", label: "Templates", icon: Sparkles, to: "/editor" },
-  { key: "tutorials", label: "Tutorials", icon: PlayCircle },
-  { key: "subscription", label: "Manage Subscription", icon: CreditCard, to: "/pricing" },
-  { key: "plugins", label: "Manage Plugins", icon: Sparkles },
-  { key: "refer", label: "Refer & Earn Money", icon: Gift },
-  { key: "support", label: "Help & Support", icon: HelpCircle },
-  { key: "settings", label: "Settings", icon: Settings, to: "/profile" },
+  { key: "support", label: "Help and Support", icon: HelpCircle },
+  { key: "settings", label: "Setting", icon: Settings, to: "/profile" },
 ] as const;
 
 export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
@@ -54,11 +32,28 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(e.target as Node)
+      ) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    if (profileDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileDropdownOpen]);
 
   const renderSidebarContent = (isMobile = false) => (
     <div className="flex h-full flex-col justify-between">
       {/* Top: Logo & Navigation */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Logo */}
         <div className="flex items-center justify-between px-2 pt-1">
           <Link
@@ -92,14 +87,14 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
                   key={item.key}
                   to={item.to}
                   onClick={() => isMobile && setMobileMenuOpen(false)}
-                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                     isActive
                       ? "bg-neutral-800/70 text-white shadow-sm font-semibold"
                       : "text-neutral-400 hover:bg-neutral-800/40 hover:text-white"
                   }`}
                 >
                   <Icon
-                    className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-neutral-400"}`}
+                    className={`h-[18px] w-[18px] shrink-0 ${isActive ? "text-white" : "text-neutral-500"}`}
                   />
                   <span>{item.label}</span>
                 </Link>
@@ -114,14 +109,14 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
                   if (isMobile) setMobileMenuOpen(false);
                   navigate({ to: "/dashboard" });
                 }}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-all cursor-pointer ${
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all cursor-pointer ${
                   isActive
                     ? "bg-neutral-800/70 text-white shadow-sm font-semibold"
                     : "text-neutral-400 hover:bg-neutral-800/40 hover:text-white"
                 }`}
               >
                 <Icon
-                  className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-neutral-400"}`}
+                  className={`h-[18px] w-[18px] shrink-0 ${isActive ? "text-white" : "text-neutral-500"}`}
                 />
                 <span>{item.label}</span>
               </button>
@@ -130,31 +125,31 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
         </nav>
       </div>
 
-      {/* Bottom Free Tier Usage */}
+      {/* Bottom: Free Tier Usage Card */}
       <div className="space-y-4 pt-4">
-        <div className="rounded-xl border border-neutral-800/80 bg-[#121212] p-3 space-y-2.5">
+        <div className="rounded-xl border border-neutral-800/80 bg-[#121212] p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-white">FREE</span>
-            <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[0.58rem] font-semibold tracking-wider text-emerald-400 border border-emerald-500/20 uppercase">
+            <span className="text-sm font-bold text-white tracking-wide">FREE</span>
+            <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-emerald-400 border border-emerald-500/20 uppercase">
               MONTHLY
             </span>
           </div>
 
-          <div className="space-y-1 text-[0.7rem]">
+          <div className="space-y-2 text-[0.75rem]">
             <div className="flex justify-between text-neutral-400">
               <span>Storage</span>
-              <span className="text-emerald-400 font-mono">&lt; 0.1 GB / 5.0 GB</span>
+              <span className="text-emerald-400 font-mono text-xs">&lt; 0.1 GB / 5.0 GB</span>
             </div>
             <div className="flex justify-between text-neutral-400">
               <span>Transcription</span>
-              <span className="text-neutral-300 font-mono">4.3 mins left</span>
+              <span className="text-neutral-200 font-mono text-xs">4.3 mins left</span>
             </div>
-            <div className="mt-1 flex h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-emerald-500 w-[15%]" />
+            <div className="mt-1.5 flex h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
+              <div className="h-full bg-emerald-500 w-[15%] rounded-full" />
             </div>
             <div className="flex justify-between text-neutral-400 pt-0.5">
               <span>Audio Clean</span>
-              <span className="text-neutral-300 font-mono">0 / 3</span>
+              <span className="text-neutral-200 font-mono text-xs">0 / 3</span>
             </div>
           </div>
         </div>
@@ -165,7 +160,7 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
   return (
     <div className="flex h-dvh bg-[#080808] text-foreground selection:bg-[#ff7a00] selection:text-black overflow-hidden font-sans">
       {/* ── Left Sidebar (Desktop) ── */}
-      <aside className="hidden md:flex w-64 shrink-0 flex-col justify-between border-r border-neutral-800/80 bg-[#0c0c0c] p-4 select-none">
+      <aside className="hidden md:flex w-60 shrink-0 flex-col justify-between border-r border-neutral-800/80 bg-[#0c0c0c] p-4 select-none">
         {renderSidebarContent(false)}
       </aside>
 
@@ -181,11 +176,12 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
           </aside>
         </>
       )}
+
       {/* ── Main Workspace ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top Navigation Bar */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-800/80 bg-[#0a0a0a] px-4 md:px-6 gap-3">
-          <div className="flex items-center gap-3 flex-1 min-w-0 max-w-sm">
+          <div className="flex items-center gap-3 flex-1 min-w-0 max-w-md">
             {/* Mobile menu toggle */}
             <button
               type="button"
@@ -212,10 +208,9 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
             </div>
           </div>
 
-          {/* Right actions */}
+          {/* Right: User Profile Pill */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* User Profile Pill Menu */}
-            <div className="relative">
+            <div className="relative" ref={profileRef}>
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen((prev) => !prev)}
@@ -229,7 +224,9 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
                 <span className="text-xs font-medium text-neutral-200 hidden sm:inline">
                   Paviter Sharma
                 </span>
-                <ChevronDown className="h-3 w-3 text-neutral-400" />
+                <ChevronDown
+                  className={`h-3 w-3 text-neutral-400 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
+                />
               </button>
 
               {profileDropdownOpen && (
@@ -243,26 +240,10 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
                   <Link
                     to="/dashboard"
                     onClick={() => setProfileDropdownOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white"
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white mt-1"
                   >
                     <Home className="h-3.5 w-3.5" />
                     <span>Dashboard</span>
-                  </Link>
-                  <Link
-                    to="/editor"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white"
-                  >
-                    <Sliders className="h-3.5 w-3.5" />
-                    <span>Studio Editor</span>
-                  </Link>
-                  <Link
-                    to="/editor"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white"
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>Templates Studio</span>
                   </Link>
                   <Link
                     to="/profile"
