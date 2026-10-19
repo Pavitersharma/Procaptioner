@@ -46,7 +46,7 @@ export interface CaptionStyle {
   highlightColor: string; // hex — active word fill
   bgColor: string; // hex
   bgOpacity: number; // 0–1
-  stylePreset: string; // "Goa" | "Islamabad" | "Kalakar Glow" | "Delhi" | etc.
+  stylePreset: string; // "Goa" | "Islamabad" | "Captioner Glow" | "Delhi" | etc.
   letterSpacing: number; // em, e.g. -0.03
   fontStyle?: "normal" | "italic" | undefined;
   textTransform?: "none" | "uppercase" | "lowercase" | "capitalize" | undefined;

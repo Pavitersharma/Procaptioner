@@ -544,10 +544,10 @@ export const BUILT_IN_TEMPLATES: CaptionTemplate[] = [
     },
   },
 
-  // 3. Kalakar Glow (Reference inspired)
+  // 3. Captioner Glow (Reference inspired)
   {
-    id: "kalakar-glow",
-    name: "Kalakar Glow",
+    id: "captioner-glow",
+    name: "Captioner Glow",
     category: "Neon",
     badge: "Pro",
     tags: ["Bold", "Shadow"],
@@ -555,7 +555,7 @@ export const BUILT_IN_TEMPLATES: CaptionTemplate[] = [
     sampleText: {
       primary: "Hello and",
       accent: "WELCOME",
-      secondary: "to Kalakaar.",
+      secondary: "to Captioner.",
     },
     style: {
       fontFamily: "Geist",
@@ -565,7 +565,7 @@ export const BUILT_IN_TEMPLATES: CaptionTemplate[] = [
       highlightColor: "#22c55e",
       bgColor: "#000000",
       bgOpacity: 0.0,
-      stylePreset: "Kalakar Glow",
+      stylePreset: "Captioner Glow",
       textShadow:
         "0 0 20px rgba(34,197,94,0.9), 0 0 40px rgba(34,197,94,0.5), 0 2px 4px rgba(0,0,0,0.8)",
       accentStyle: "glow-word",
