@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
+import { useAuth } from "@/lib/auth";
 import {
   Home,
   Sparkles,
@@ -11,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  User as UserIcon,
 } from "lucide-react";
 
 export type DashboardTab = "home" | "templates" | "support" | "settings";
@@ -29,10 +31,25 @@ const sidebarLinks = [
 
 export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  const userMeta = (user?.user_metadata || {}) as Record<string, string>;
+  const displayName: string =
+    userMeta["full_name"] ||
+    userMeta["name"] ||
+    (user?.email ? user.email.split("@")[0] || "Creator" : "Creator");
+  const displayEmail = user?.email || "guest@procaptioner.com";
+  const avatarUrl = userMeta["avatar_url"];
+
+  const handleSignOut = async () => {
+    setProfileDropdownOpen(false);
+    await signOut();
+    navigate({ to: "/signin" });
+  };
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -216,13 +233,19 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
                 onClick={() => setProfileDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-2 rounded-full border border-neutral-800 bg-[#121212] py-1 pl-1 pr-2.5 transition-colors hover:bg-neutral-800 cursor-pointer"
               >
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=150&auto=format&fit=crop"
-                  alt="Paviter Sharma"
-                  className="h-6 w-6 rounded-full object-cover"
-                />
-                <span className="text-xs font-medium text-neutral-200 hidden sm:inline">
-                  Paviter Sharma
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="h-6 w-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-[#ff7a1a] to-orange-400 text-black font-bold text-[10px] flex items-center justify-center uppercase shrink-0">
+                    {displayName.charAt(0) || "U"}
+                  </div>
+                )}
+                <span className="text-xs font-medium text-neutral-200 hidden sm:inline max-w-[120px] truncate">
+                  {displayName}
                 </span>
                 <ChevronDown
                   className={`h-3 w-3 text-neutral-400 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
@@ -230,11 +253,11 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
               </button>
 
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-52 rounded-xl border border-neutral-800 bg-[#141414] p-1.5 shadow-2xl z-50 animate-in fade-in duration-100">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-neutral-800 bg-[#141414] p-1.5 shadow-2xl z-50 animate-in fade-in duration-100">
                   <div className="px-2.5 py-2 border-b border-neutral-800/80">
-                    <p className="text-xs font-medium text-white truncate">Paviter Sharma</p>
+                    <p className="text-xs font-medium text-white truncate">{displayName}</p>
                     <p className="text-[0.65rem] text-neutral-400 truncate">
-                      pavitersharma2001@gmail.com
+                      {displayEmail}
                     </p>
                   </div>
                   <Link
@@ -254,13 +277,25 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
                     <span>Account Settings</span>
                   </Link>
                   <div className="my-1 border-t border-neutral-800/80" />
-                  <Link
-                    to="/login"
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-500/10"
-                  >
-                    <LogOut className="h-3.5 w-3.5" />
-                    <span>Sign out</span>
-                  </Link>
+                  {user ? (
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-red-400 hover:bg-red-500/10 cursor-pointer text-left"
+                    >
+                      <LogOut className="h-3.5 w-3.5" />
+                      <span>Sign out</span>
+                    </button>
+                  ) : (
+                    <Link
+                      to="/signin"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-[#ff7a1a] hover:bg-[#ff7a1a]/10"
+                    >
+                      <LogOut className="h-3.5 w-3.5 rotate-180" />
+                      <span>Sign in</span>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

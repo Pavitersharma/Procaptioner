@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Camera,
   Check,
@@ -11,7 +11,10 @@ import {
   Bell,
   Sparkles,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 export interface UserProfile {
   name: string;
@@ -57,19 +60,42 @@ const LANGUAGES = [
 ];
 
 export function SettingsView() {
+  const { user, refreshUser } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+
   // Main profile state
   const [profile, setProfile] = useState<UserProfile>({
-    name: "Paviter Sharma",
-    email: "pavitersharma2001@gmail.com",
+    name: "Creator",
+    email: "",
     phone: "",
     countryCode: "+91",
     gender: "Select gender",
     language: "Select language",
-    authProvider: "Google",
+    authProvider: "Email",
     avatarUrl:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop",
     passwordSet: false,
   });
+
+  useEffect(() => {
+    if (user) {
+      const meta = (user.user_metadata || {}) as Record<string, string>;
+      const provider = (user.app_metadata?.provider as string) || "email";
+      setProfile({
+        name: meta["full_name"] || meta["name"] || user.email?.split("@")[0] || "Creator",
+        email: user.email || "",
+        phone: meta["phone"] || "",
+        countryCode: meta["countryCode"] || "+91",
+        gender: meta["gender"] || "Select gender",
+        language: meta["language"] || "Select language",
+        authProvider: provider.charAt(0).toUpperCase() + provider.slice(1),
+        avatarUrl:
+          meta["avatar_url"] ||
+          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=250&auto=format&fit=crop",
+        passwordSet: provider === "email",
+      });
+    }
+  }, [user]);
 
   // Modals state
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -99,20 +125,44 @@ export function SettingsView() {
     }
   };
 
-  const handleSaveProfile = () => {
-    showToast("Personal details saved successfully");
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: profile.name,
+          phone: profile.phone,
+          countryCode: profile.countryCode,
+          gender: profile.gender,
+          language: profile.language,
+        },
+      });
+      if (error) throw error;
+      await refreshUser();
+      showToast("Personal details saved successfully");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleUpdateEmail = (e: React.FormEvent) => {
+  const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmail || !newEmail.includes("@")) return;
-    setProfile((p) => ({ ...p, email: newEmail }));
-    setEmailModalOpen(false);
-    setNewEmail("");
-    showToast("Email address updated successfully");
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      setEmailModalOpen(false);
+      setNewEmail("");
+      showToast("Confirmation email sent to new address");
+      await refreshUser();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to update email");
+    }
   };
 
-  const handleSetPassword = (e: React.FormEvent) => {
+  const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) {
       setPasswordError("Password must be at least 6 characters");
@@ -122,12 +172,18 @@ export function SettingsView() {
       setPasswordError("Passwords do not match");
       return;
     }
-    setProfile((p) => ({ ...p, passwordSet: true }));
-    setPasswordModalOpen(false);
-    setNewPassword("");
-    setConfirmPassword("");
-    setPasswordError("");
-    showToast("Password set successfully");
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setProfile((p) => ({ ...p, passwordSet: true }));
+      setPasswordModalOpen(false);
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordError("");
+      showToast("Password set successfully");
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : "Failed to set password");
+    }
   };
 
   return (
@@ -339,10 +395,12 @@ export function SettingsView() {
           <div className="pt-2 flex justify-end">
             <button
               type="button"
+              disabled={isSaving}
               onClick={handleSaveProfile}
-              className="rounded-lg bg-[#ff7a00] px-5 py-2 font-mono text-xs font-bold tracking-[0.14em] text-black uppercase transition-all duration-150 hover:bg-[#ff881a] active:scale-[0.98] cursor-pointer shadow-md shadow-orange-500/10"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#ff7a00] px-5 py-2 font-mono text-xs font-bold tracking-[0.14em] text-black uppercase transition-all duration-150 hover:bg-[#ff881a] active:scale-[0.98] cursor-pointer shadow-md shadow-orange-500/10 disabled:opacity-50"
             >
-              Save details
+              {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isSaving ? "Saving..." : "Save details"}
             </button>
           </div>
         </div>

@@ -7,27 +7,27 @@ export interface ProCaptionerLogoProps {
    * "compact": Typographic "PC" monogram for constrained spaces
    * "responsive": Compact "PC" monogram on small screens, full wordmark on sm+
    */
-  variant?: "default" | "compact" | "responsive";
+  variant?: "default" | "compact" | "responsive" | undefined;
   /**
    * Color appearance:
    * "auto" (default): follows CSS / theme context
    * "dark": forces off-white Captioner (for dark backgrounds)
    * "light": forces near-black Captioner (for light surfaces)
    */
-  theme?: "auto" | "dark" | "light";
+  theme?: "auto" | "dark" | "light" | undefined;
   /**
    * Pre-defined sizes or number (pixel size):
    * "xs" (14px), "sm" (16px), "md" (20px, default), "lg" (26px), "xl" (32px)
    */
-  size?: "xs" | "sm" | "md" | "lg" | "xl" | number;
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | number | undefined;
   /**
    * Optional additional CSS classes
    */
-  className?: string;
+  className?: string | undefined;
   /**
    * Accessible label for assistive tech (default: "ProCaptioner")
    */
-  accessibleLabel?: string;
+  accessibleLabel?: string | undefined;
 }
 
 const SIZE_STYLES: Record<string, { fontSize: string; monogramSize: number }> = {
@@ -47,9 +47,9 @@ export function ProCaptionerMonogram({
   theme = "auto",
   className,
 }: {
-  size?: number;
-  theme?: "auto" | "dark" | "light";
-  className?: string;
+  size?: number | undefined;
+  theme?: "auto" | "dark" | "light" | undefined;
+  className?: string | undefined;
 }) {
   const cColor = theme === "light" ? "#151515" : theme === "dark" ? "#F5F5F5" : "currentColor";
 
@@ -99,7 +99,7 @@ export function ProCaptionerLogo({
   className,
   accessibleLabel = "ProCaptioner",
 }: ProCaptionerLogoProps) {
-  const sizeConfig = typeof size === "number" ? null : SIZE_STYLES[size] || SIZE_STYLES.md;
+  const sizeConfig = typeof size === "number" ? null : SIZE_STYLES[size] || SIZE_STYLES["md"];
   const customFontSize = typeof size === "number" ? `${size}px` : sizeConfig?.fontSize;
   const monogramPixelSize = typeof size === "number" ? size * 1.3 : sizeConfig?.monogramSize || 30;
 

@@ -14,10 +14,14 @@ import {
   PanelLeftOpen,
   PanelRightOpen,
   Zap,
+  Play,
+  Clock,
+  Trash2,
+  Save,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { cn } from "@/lib/utils";
-import { EditorProvider, loadSavedEditorPrefs, useEditor } from "@/lib/editor-store";
+import { EditorProvider, loadSavedEditorPrefs, useEditor, type CaptionStyle } from "@/lib/editor-store";
 import { SidebarPanel } from "@/components/editor/sidebar-panel";
 import { CanvasPanel } from "@/components/editor/canvas-panel";
 import { InspectorPanel } from "@/components/editor/inspector-panel";
@@ -25,6 +29,8 @@ import { TimelinePanel } from "@/components/editor/timeline-panel";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
 import { NotFoundComponent } from "@/components/not-found";
 import { CREATOR_PRO_FEATURES } from "@/components/vyra/pricing";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WordInfo {
@@ -42,6 +48,20 @@ interface SubtitleEntry {
   text: string;
   roman_text?: string;
   words: WordInfo[];
+}
+
+export interface SavedProject {
+  id: string;
+  user_id?: string;
+  job_id: string;
+  name: string;
+  filename: string;
+  duration: number;
+  language: string;
+  subtitles: SubtitleEntry[];
+  caption_style?: Record<string, unknown>;
+  created_at: string;
+  updated_at?: string;
 }
 
 interface JobState {
@@ -112,6 +132,7 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 export function DashboardPage() {
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -124,6 +145,10 @@ export function DashboardPage() {
   const [selectedTargetLang, setSelectedTargetLang] = useState("");
   const [script, setScript] = useState<"native" | "roman">("native");
   const [isTranslating, setIsTranslating] = useState(false);
+
+  // Projects state
+  const [projects, setProjects] = useState<SavedProject[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   // Upload state
   const [sourceLang, setSourceLang] = useState("auto");
@@ -146,6 +171,34 @@ export function DashboardPage() {
 
   // Upgrade Plan modal
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // ── Load saved projects from Supabase ──
+  const loadProjects = useCallback(async () => {
+    if (!user) {
+      setProjects([]);
+      return;
+    }
+    setLoadingProjects(true);
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(12);
+
+      if (!error && data) {
+        setProjects(data as SavedProject[]);
+      }
+    } catch (err) {
+      console.warn("Could not load projects from Supabase:", err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   useEffect(() => {
     try {
@@ -176,6 +229,41 @@ export function DashboardPage() {
       if (data.status === "completed") {
         setPhase("editor");
         es.close();
+
+        // Auto-persist project to Supabase if logged in
+        if (user) {
+          let activeTemplateStyle: Record<string, unknown> = {};
+          try {
+            const stored = localStorage.getItem("procaptioner_active_template");
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              if (parsed?.style) activeTemplateStyle = { ...parsed.style, stylePreset: parsed.name };
+            }
+          } catch {}
+
+          supabase
+            .from("projects")
+            .upsert(
+              {
+                user_id: user.id,
+                job_id: data.job_id,
+                name: data.filename || "Untitled Project",
+                filename: data.filename,
+                duration: data.duration || 0,
+                language: data.detected_language || "auto",
+                subtitles: data.subtitles || [],
+                caption_style: activeTemplateStyle,
+              },
+              { onConflict: "job_id" }
+            )
+            .then(({ error }) => {
+              if (error) {
+                console.warn("Could not auto-save project to Supabase:", error.message);
+              } else {
+                loadProjects();
+              }
+            });
+        }
       }
       if (data.status === "failed" || data.error) {
         setHasError(true);
@@ -188,7 +276,7 @@ export function DashboardPage() {
       es.close();
     };
     return () => es.close();
-  }, [job?.job_id, phase]);
+  }, [job?.job_id, phase, user, loadProjects]);
 
   // ── Track video time for subtitle highlighting ──
   useEffect(() => {
@@ -328,6 +416,51 @@ export function DashboardPage() {
     setHasError(false);
     setPendingFile(null);
     setShowLanguageModal(false);
+  };
+
+  // ── Open saved project in editor ──
+  const handleOpenProject = (proj: SavedProject) => {
+    const reconstructedJob: JobState = {
+      job_id: proj.job_id,
+      filename: proj.filename || proj.name,
+      status: "completed",
+      progress: 1.0,
+      message: "Completed",
+      error: null,
+      detected_language: proj.language,
+      language_confidence: 1.0,
+      segment_count: proj.subtitles?.length || 0,
+      word_count:
+        proj.subtitles?.reduce((acc, s) => acc + (s.words?.length || 0), 0) || 0,
+      duration: proj.duration || 0,
+      has_video: true,
+      has_srt: true,
+      has_vtt: true,
+      has_burned_video: false,
+      subtitles: proj.subtitles,
+    };
+
+    if (proj.caption_style) {
+      (reconstructedJob as unknown as Record<string, unknown>)["caption_style"] =
+        proj.caption_style;
+    }
+
+    setJob(reconstructedJob);
+    setPhase("editor");
+  };
+
+  // ── Delete saved project ──
+  const handleDeleteProject = async (e: React.MouseEvent, projId: string) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this project?")) return;
+    try {
+      const { error } = await supabase.from("projects").delete().eq("id", projId);
+      if (!error) {
+        setProjects((prev) => prev.filter((p) => p.id !== projId));
+      }
+    } catch (err) {
+      console.warn("Failed to delete project:", err);
+    }
   };
 
   // ── Error state ──
@@ -501,14 +634,14 @@ export function DashboardPage() {
       hasBurnedVideo: job.has_burned_video,
       detectedLanguage: job.detected_language ?? "",
       script: (savedPrefs.script ||
-        (job as unknown as Record<string, unknown>).script ||
+        ((job as unknown as Record<string, unknown>)["script"] as "native" | "roman" | undefined) ||
         script) as "native" | "roman",
       ...(Object.keys(activeTemplateStyle).length > 0
-        ? { captionStyle: activeTemplateStyle }
+        ? { captionStyle: activeTemplateStyle as unknown as CaptionStyle }
         : {}),
       ...savedPrefs,
-      ...((job as unknown as Record<string, unknown>).caption_style
-        ? { captionStyle: (job as unknown as Record<string, unknown>).caption_style }
+      ...((job as unknown as Record<string, unknown>)["caption_style"]
+        ? { captionStyle: (job as unknown as Record<string, unknown>)["caption_style"] as CaptionStyle }
         : {}),
     };
 
@@ -651,24 +784,126 @@ export function DashboardPage() {
         {/* ── Recent Projects ── */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white">Recent Projects</h2>
-            <button
-              type="button"
-              className="text-xs text-brand-orange hover:text-brand-orange/80 transition-colors cursor-pointer"
-            >
-              View all
-            </button>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-sm font-semibold text-white">Recent Projects</h2>
+              {projects.length > 0 && (
+                <span className="rounded-full bg-neutral-800 px-2 py-0.5 font-mono text-[0.62rem] text-neutral-400 border border-neutral-700/50">
+                  {projects.length}
+                </span>
+              )}
+            </div>
+            {projects.length > 0 && (
+              <button
+                type="button"
+                onClick={loadProjects}
+                className="text-xs text-[#ff7a1a] hover:underline cursor-pointer"
+              >
+                Refresh
+              </button>
+            )}
           </div>
 
-          <div className="flex flex-col items-center justify-center rounded-xl border border-neutral-800/80 bg-[#0d0d0d] px-6 py-20 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-neutral-800 bg-[#121212] mb-4">
-              <Sparkles className="h-5 w-5 text-neutral-500" />
+          {loadingProjects ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-44 rounded-xl border border-neutral-800/80 bg-[#0d0d0d] p-4 animate-pulse space-y-3"
+                >
+                  <div className="h-24 w-full bg-neutral-800/60 rounded-lg" />
+                  <div className="h-3 w-2/3 bg-neutral-800/80 rounded" />
+                  <div className="h-2 w-1/3 bg-neutral-800/60 rounded" />
+                </div>
+              ))}
             </div>
-            <p className="text-lg font-bold tracking-tight text-white">No projects yet</p>
-            <p className="mt-1.5 text-xs text-neutral-500">
-              Upload a clip above to create your first project
-            </p>
-          </div>
+          ) : projects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-neutral-800/80 bg-[#0d0d0d] px-6 py-20 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-neutral-800 bg-[#121212] mb-4">
+                <Sparkles className="h-5 w-5 text-neutral-500" />
+              </div>
+              <p className="text-lg font-bold tracking-tight text-white">No projects yet</p>
+              <p className="mt-1.5 text-xs text-neutral-500 max-w-sm">
+                {user
+                  ? "Upload a clip above to create and automatically save your first project"
+                  : "Sign in to save and sync your captioned projects to your personal cloud"}
+              </p>
+              {!user && (
+                <Link
+                  to="/signin"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-[#ff7a1a]/30 bg-[#ff7a1a]/10 px-4 py-2 font-mono text-xs font-semibold text-[#ff7a1a] hover:bg-[#ff7a1a] hover:text-black transition-colors"
+                >
+                  Sign in to save projects →
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((proj) => (
+                <div
+                  key={proj.id}
+                  onClick={() => handleOpenProject(proj)}
+                  className="group relative flex flex-col justify-between rounded-xl border border-neutral-800/80 bg-[#0d0d0d] p-4 transition-all duration-200 hover:border-[#ff7a1a]/50 hover:bg-[#121212] hover:shadow-[0_8px_30px_rgba(255,122,26,0.08)] cursor-pointer"
+                >
+                  {/* Top card preview */}
+                  <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-neutral-900 border border-neutral-800 flex items-center justify-center group-hover:border-neutral-700">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
+                    <FileVideo className="h-10 w-10 text-neutral-600 group-hover:text-[#ff7a1a] transition-colors" />
+
+                    {/* Play button hover badge */}
+                    <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                      <div className="h-10 w-10 rounded-full bg-[#ff7a1a] text-black flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform">
+                        <Play className="h-4 w-4 fill-black translate-x-0.5" />
+                      </div>
+                    </div>
+
+                    {/* Duration badge */}
+                    {proj.duration > 0 && (
+                      <span className="absolute bottom-2 right-2 z-20 rounded bg-black/80 px-1.5 py-0.5 font-mono text-[0.62rem] text-white/90 border border-white/10">
+                        {formatDuration(proj.duration)}
+                      </span>
+                    )}
+
+                    {/* Language pill */}
+                    {proj.language && (
+                      <span className="absolute top-2 left-2 z-20 rounded bg-neutral-900/90 px-1.5 py-0.5 font-mono text-[0.58rem] text-[#ff7a1a] uppercase tracking-wider border border-[#ff7a1a]/30">
+                        {proj.language}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Card bottom metadata */}
+                  <div className="mt-3 flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-white group-hover:text-[#ff7a1a] transition-colors">
+                        {proj.name || proj.filename}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 font-mono text-[0.65rem] text-neutral-500">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {new Date(proj.created_at).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
+                        <span>•</span>
+                        <span>{proj.subtitles?.length || 0} cues</span>
+                      </div>
+                    </div>
+
+                    {/* Delete action */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteProject(e, proj.id)}
+                      className="p-1 text-neutral-500 hover:text-red-400 transition-colors rounded hover:bg-neutral-800"
+                      title="Delete project"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -969,10 +1204,43 @@ interface DashboardEditorLayoutProps {
 
 function DashboardEditorLayout({
   videoRef,
+  jobId,
   filename,
   onBackToDashboard,
 }: DashboardEditorLayoutProps) {
   const { state, dispatch, canUndo, canRedo } = useEditor();
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleSaveProject = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from("projects").upsert(
+        {
+          user_id: user.id,
+          job_id: jobId,
+          name: filename,
+          filename,
+          duration: state.duration,
+          language: state.detectedLanguage || "auto",
+          subtitles: state.subtitles,
+          caption_style: state.captionStyle,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "job_id" },
+      );
+      if (!error) {
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2500);
+      }
+    } catch (e) {
+      console.warn("Failed to save project:", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // ── Mobile drawer state ──
   const [mobileSidebar, setMobileSidebar] = useState(false);
@@ -1129,8 +1397,32 @@ function DashboardEditorLayout({
           </button>
         </div>
 
-        {/* Right: Mobile inspector toggle */}
+        {/* Right: Save Project & Mobile inspector toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {user && (
+            <button
+              type="button"
+              onClick={handleSaveProject}
+              disabled={isSaving}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-[0.62rem] font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm",
+                savedSuccess
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                  : "bg-[#ff7a1a]/15 text-[#ff7a1a] border border-[#ff7a1a]/30 hover:bg-[#ff7a1a] hover:text-black",
+              )}
+              title="Save project changes to personal cloud"
+            >
+              {isSaving ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : savedSuccess ? (
+                <Check className="h-3 w-3" />
+              ) : (
+                <Save className="h-3 w-3" />
+              )}
+              <span>{savedSuccess ? "Saved" : isSaving ? "Saving..." : "Save"}</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setMobileInspector((v) => !v);

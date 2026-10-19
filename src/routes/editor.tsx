@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LanguageSelector } from "@/components/vyra/language-selector";
-import { EditorProvider, loadSavedEditorPrefs, useEditor } from "@/lib/editor-store";
+import { EditorProvider, loadSavedEditorPrefs, useEditor, type CaptionStyle } from "@/lib/editor-store";
 import { SidebarPanel } from "@/components/editor/sidebar-panel";
 import { CanvasPanel } from "@/components/editor/canvas-panel";
 import { InspectorPanel } from "@/components/editor/inspector-panel";
@@ -930,11 +930,11 @@ function EditorPage() {
     hasVtt: job!.has_vtt,
     hasBurnedVideo: job!.has_burned_video,
     detectedLanguage: job!.detected_language ?? "",
-    script: (savedPrefs.script || (job as unknown as Record<string, unknown>).script || script) as
+    script: (savedPrefs.script || ((job as unknown as Record<string, unknown>)["script"] as "native" | "roman" | undefined) || script) as
       "native" | "roman",
     ...savedPrefs,
-    ...((job as unknown as Record<string, unknown>).caption_style
-      ? { captionStyle: (job as unknown as Record<string, unknown>).caption_style }
+    ...((job as unknown as Record<string, unknown>)["caption_style"]
+      ? { captionStyle: (job as unknown as Record<string, unknown>)["caption_style"] as CaptionStyle }
       : {}),
   };
 

@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
+import { supabase } from "@/lib/supabase";
 
 interface SigninFormErrors {
   email?: string;
@@ -31,6 +32,8 @@ export function SignInPage() {
   const [forgotSent, setForgotSent] = useState(false);
   const [errors, setErrors] = useState<SigninFormErrors>({});
   const [touched, setTouched] = useState<SigninFormTouched>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const validate = (values: { email: string; password: string }): SigninFormErrors => {
     const newErrors: SigninFormErrors = {};
@@ -73,30 +76,66 @@ export function SignInPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
     const validationErrors = validate({ email, password });
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length === 0) {
-      navigate({ to: "/dashboard" });
+      setIsSubmitting(true);
+      setAuthError(null);
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      setIsSubmitting(false);
+
+      if (error) {
+        setAuthError(error.message);
+        return;
+      }
+
+      if (data.session) {
+        navigate({ to: "/dashboard" });
+      }
     }
+  };
+
+  const handleGoogleLogin = async () => {
+    setAuthError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) setAuthError(error.message);
   };
 
   const handleSocialLogin = () => {
     navigate({ to: "/dashboard" });
   };
 
-  const handleForgotPassword = (e: React.MouseEvent) => {
+  const handleForgotPassword = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       setErrors((prev) => ({ ...prev, email: "Enter your email to receive a reset link" }));
       setTouched((prev) => ({ ...prev, email: true }));
       return;
     }
-    setForgotSent(true);
-    setTimeout(() => setForgotSent(false), 4000);
+    setAuthError(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/profile`,
+    });
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setForgotSent(true);
+      setTimeout(() => setForgotSent(false), 5000);
+    }
   };
 
   return (
@@ -145,6 +184,13 @@ export function SignInPage() {
 
         {/* Form without HTML5 required attribute */}
         <form onSubmit={handleSubmit} noValidate className="mt-7 space-y-4">
+          {/* Auth Error Alert */}
+          {authError && (
+            <div className="flex items-center gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400 animate-in fade-in">
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-400" />
+              <span>{authError}</span>
+            </div>
+          )}
           {/* Email */}
           <div>
             <label className="block text-xs font-medium text-neutral-300 mb-1.5">Email</label>
@@ -225,10 +271,20 @@ export function SignInPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-[#ff7a00] py-3 font-mono text-xs font-bold tracking-[0.18em] text-black uppercase transition-all duration-150 hover:bg-[#ff881a] active:scale-[0.99] cursor-pointer shadow-lg shadow-orange-500/10"
+            disabled={isSubmitting}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-[#ff7a00] py-3 font-mono text-xs font-bold tracking-[0.18em] text-black uppercase transition-all duration-150 hover:bg-[#ff881a] active:scale-[0.99] cursor-pointer shadow-lg shadow-orange-500/10 disabled:opacity-60"
           >
-            <span>LOG IN</span>
-            <span className="text-sm leading-none font-bold">→</span>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>LOGGING IN...</span>
+              </>
+            ) : (
+              <>
+                <span>LOG IN</span>
+                <span className="text-sm leading-none font-bold">→</span>
+              </>
+            )}
           </button>
 
           {/* Divider */}
@@ -244,7 +300,7 @@ export function SignInPage() {
             {/* Google */}
             <button
               type="button"
-              onClick={handleSocialLogin}
+              onClick={handleGoogleLogin}
               className="flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-800 bg-[#0e0e0e]/70 py-2.5 px-4 text-xs font-medium text-white transition-all hover:bg-neutral-800/50 hover:border-neutral-700 active:scale-[0.99] cursor-pointer"
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
