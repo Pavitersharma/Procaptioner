@@ -22,7 +22,7 @@ interface DashboardLayoutProps {
 
 const sidebarLinks = [
   { key: "home", label: "Home", icon: Home, to: "/dashboard" },
-  { key: "templates", label: "Templates", icon: Sparkles, to: "/editor" },
+  { key: "templates", label: "Templates", icon: Sparkles, to: "/templates" },
   { key: "support", label: "Help and Support", icon: HelpCircle },
   { key: "settings", label: "Setting", icon: Settings, to: "/profile" },
 ] as const;

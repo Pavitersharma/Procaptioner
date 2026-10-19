@@ -139,6 +139,19 @@ export function DashboardPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [activeSubIndex, setActiveSubIndex] = useState(-1);
 
+  // Active template selected from /templates box view
+  const [activeTemplateName, setActiveTemplateName] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("procaptioner_active_template");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.name) setActiveTemplateName(parsed.name);
+      }
+    } catch {}
+  }, []);
+
   // ── Load languages on mount ──
   useEffect(() => {
     fetch(`${API_BASE}/api/languages`)
@@ -457,6 +470,18 @@ export function DashboardPage() {
       })),
     }));
 
+    // If user pre-selected a template from the Templates box view
+    let activeTemplateStyle: Record<string, unknown> = {};
+    try {
+      const stored = localStorage.getItem("procaptioner_active_template");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.style) {
+          activeTemplateStyle = { ...parsed.style, stylePreset: parsed.name };
+        }
+      }
+    } catch {}
+
     const initialEditorState = {
       jobId: job.job_id,
       filename: job.filename,
@@ -473,6 +498,9 @@ export function DashboardPage() {
       script: (savedPrefs.script ||
         (job as unknown as Record<string, unknown>).script ||
         script) as "native" | "roman",
+      ...(Object.keys(activeTemplateStyle).length > 0
+        ? { captionStyle: activeTemplateStyle }
+        : {}),
       ...savedPrefs,
       ...((job as unknown as Record<string, unknown>).caption_style
         ? { captionStyle: (job as unknown as Record<string, unknown>).caption_style }
@@ -495,6 +523,24 @@ export function DashboardPage() {
   return (
     <DashboardLayout activeTab="home">
       <div className="mx-auto max-w-5xl space-y-6">
+        {/* Active Selected Template Notice */}
+        {activeTemplateName && (
+          <div className="flex items-center justify-between rounded-xl border border-[#ff7a1a]/30 bg-[#ff7a1a]/10 px-4 py-2.5">
+            <div className="flex items-center gap-2 font-mono text-xs text-[#ff7a1a]">
+              <Sparkles className="h-4 w-4" />
+              <span>
+                Active Template: <strong className="text-white underline">{activeTemplateName}</strong>
+              </span>
+            </div>
+            <Link
+              to="/templates"
+              className="font-mono text-[0.65rem] text-[#ff7a1a] hover:underline uppercase tracking-wider"
+            >
+              Browse All Templates →
+            </Link>
+          </div>
+        )}
+
         {/* ── Drop Footage Area ── */}
         <div
           onDragOver={(e) => {
