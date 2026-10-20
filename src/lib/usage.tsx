@@ -104,10 +104,10 @@ export function UsageProvider({ children }: { children: ReactNode }) {
 
     setLoadingUsage(true);
     try {
-      // 1. Fetch user projects to calculate exact live usage
+      // 1. Fetch user projects to calculate exact live usage safely
       const { data: projects, error: projectsError } = await supabase
         .from("projects")
-        .select("file_size, duration, audio_clean_applied")
+        .select("*")
         .eq("user_id", user.id);
 
       let totalStorage = 0;
@@ -116,30 +116,31 @@ export function UsageProvider({ children }: { children: ReactNode }) {
       const count = projects?.length || 0;
 
       if (!projectsError && projects) {
-        for (const p of projects) {
+        for (const p of projects as Record<string, unknown>[]) {
           totalStorage += Number(p.file_size || 0);
           totalDuration += Number(p.duration || 0);
           if (p.audio_clean_applied) totalAudioCleans += 1;
         }
       }
 
-      // 2. Fetch user profile for plan and custom limits
+      // 2. Fetch user profile for plan and storage
       let plan: "free" | "creator_pro" = "free";
-      let storageLimit = DEFAULT_STORAGE_LIMIT;
-      let transcriptionLimit = DEFAULT_TRANSCRIPTION_LIMIT;
-      let audioCleanLimit = DEFAULT_AUDIO_CLEAN_LIMIT;
+      const storageLimit = DEFAULT_STORAGE_LIMIT;
+      const transcriptionLimit = DEFAULT_TRANSCRIPTION_LIMIT;
+      const audioCleanLimit = DEFAULT_AUDIO_CLEAN_LIMIT;
 
       const { data: profile } = await supabase
-        .from("user_profiles")
-        .select("plan, storage_limit_bytes, transcription_limit_seconds, audio_clean_limit")
+        .from("profiles")
+        .select("plan, storage_used_bytes")
         .eq("id", user.id)
         .maybeSingle();
 
       if (profile) {
         if (profile.plan === "creator_pro") plan = "creator_pro";
-        if (profile.storage_limit_bytes) storageLimit = Number(profile.storage_limit_bytes);
-        if (profile.transcription_limit_seconds) transcriptionLimit = Number(profile.transcription_limit_seconds);
-        if (profile.audio_clean_limit) audioCleanLimit = Number(profile.audio_clean_limit);
+        const profileBytes = Number(profile.storage_used_bytes || 0);
+        if (profileBytes > totalStorage) {
+          totalStorage = profileBytes;
+        }
       }
 
       const storagePercent = Math.min(100, Math.round((totalStorage / storageLimit) * 100));

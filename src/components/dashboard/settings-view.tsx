@@ -138,6 +138,17 @@ export function SettingsView() {
         },
       });
       if (error) throw error;
+
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({
+            full_name: profile.name,
+            avatar_url: profile.avatarUrl || null,
+          })
+          .eq("id", user.id);
+      }
+
       await refreshUser();
       showToast("Personal details saved successfully");
     } catch (err: unknown) {

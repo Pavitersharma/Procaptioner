@@ -30,7 +30,11 @@ export async function uploadVideoToStorage(
       });
 
     if (uploadError) {
-      console.warn("Supabase Storage upload warning (falling back to local):", uploadError.message);
+      console.warn(
+        "[ProCaptioner Storage] Supabase Storage upload failed:",
+        uploadError.message,
+        "— check storage RLS policies for the 'videos' bucket in Supabase SQL editor."
+      );
       return null;
     }
 
@@ -42,7 +46,7 @@ export async function uploadVideoToStorage(
       videoUrl: urlData.publicUrl,
     };
   } catch (err) {
-    console.warn("Storage upload exception:", err);
+    console.warn("[ProCaptioner Storage] Storage upload exception:", err);
     return null;
   }
 }

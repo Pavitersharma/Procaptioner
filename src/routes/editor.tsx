@@ -27,6 +27,7 @@ import { supabase } from "@/lib/supabase";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { useUsage, validateUploadQuota } from "@/lib/usage";
 import { uploadVideoToStorage } from "@/lib/storage";
+import { saveProjectRecord } from "@/lib/projects";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WordInfo {
@@ -285,31 +286,22 @@ function EditorPageContent() {
         // Auto-save project to Supabase if logged in
         if (user) {
           const meta = currentUploadMetaRef.current;
-          supabase
-            .from("projects")
-            .upsert(
-              {
-                user_id: user.id,
-                job_id: data.job_id,
-                name: data.filename || "Untitled Project",
-                filename: data.filename,
-                duration: data.duration || 0,
-                language: data.detected_language || "auto",
-                subtitles: data.subtitles || [],
-                file_size: meta?.fileSize || 0,
-                storage_path: meta?.storagePath || null,
-                video_url: meta?.videoUrl || null,
-                status: "completed",
-              },
-              { onConflict: "job_id" }
-            )
-            .then(({ error }) => {
-              if (error) {
-                console.warn("Could not auto-save project to Supabase:", error.message);
-              } else {
-                refreshUsage();
-              }
-            });
+          saveProjectRecord({
+            userId: user.id,
+            jobId: data.job_id,
+            filename: data.filename || "Untitled Project",
+            duration: data.duration || 0,
+            language: data.detected_language || "auto",
+            subtitles: data.subtitles || [],
+            fileSize: meta?.fileSize || 0,
+            storagePath: meta?.storagePath || null,
+            videoUrl: meta?.videoUrl || null,
+            status: "completed",
+          }).then((saved) => {
+            if (saved) {
+              refreshUsage();
+            }
+          });
         }
       }
       if (data.status === "failed" || data.error) {
@@ -1034,21 +1026,18 @@ function EditorLayout({ videoRef, jobId, filename }: EditorLayoutProps) {
     if (!user) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase.from("projects").upsert(
-        {
-          user_id: user.id,
-          job_id: jobId,
-          name: filename,
-          filename,
-          duration: state.duration,
-          language: state.detectedLanguage || "auto",
-          subtitles: state.subtitles,
-          caption_style: state.captionStyle,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "job_id" },
-      );
-      if (!error) {
+      const ok = await saveProjectRecord({
+        userId: user.id,
+        jobId,
+        filename,
+        duration: state.duration,
+        language: state.detectedLanguage || "auto",
+        subtitles: state.subtitles,
+        captionStyle: state.captionStyle as Record<string, unknown>,
+        videoUrl: state.videoSrc || null,
+        status: "completed",
+      });
+      if (ok) {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 2500);
       }

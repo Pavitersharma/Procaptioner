@@ -18,6 +18,53 @@ const AuthContext = createContext<AuthContextType>({
   refreshUser: async () => {},
 });
 
+async function syncUserProfile(u: User | null) {
+  if (!u) return;
+  try {
+    const fullName =
+      (u.user_metadata?.full_name as string) ||
+      (u.user_metadata?.name as string) ||
+      u.email?.split("@")[0] ||
+      "Creator";
+    const avatarUrl =
+      (u.user_metadata?.avatar_url as string) ||
+      (u.user_metadata?.picture as string) ||
+      null;
+
+    // Check if profile exists first
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", u.id)
+      .maybeSingle();
+
+    if (!existing) {
+      const { error: insertErr } = await supabase.from("profiles").insert({
+        id: u.id,
+        email: u.email,
+        full_name: fullName,
+        avatar_url: avatarUrl,
+        plan: "free",
+        storage_used_bytes: 0,
+      });
+      if (insertErr) {
+        console.warn("Profile insert notice (requires profiles INSERT policy or trigger):", insertErr.message);
+      }
+    } else {
+      await supabase
+        .from("profiles")
+        .update({
+          email: u.email,
+          full_name: fullName,
+          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        })
+        .eq("id", u.id);
+    }
+  } catch (err) {
+    console.warn("Could not sync user profile:", err);
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -29,6 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        syncUserProfile(session.user);
+      }
     });
 
     // 2. Listen for auth changes (login, logout, token refresh)
@@ -38,6 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        syncUserProfile(session.user);
+      }
     });
 
     return () => {
@@ -54,6 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     const { data } = await supabase.auth.getUser();
     setUser(data.user);
+    if (data.user) {
+      syncUserProfile(data.user);
+    }
   };
 
   return (

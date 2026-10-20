@@ -33,7 +33,13 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { useUsage, formatBytes, formatMinutes, validateUploadQuota } from "@/lib/usage";
-import { uploadVideoToStorage, deleteVideoFromStorage } from "@/lib/storage";
+import { uploadVideoToStorage } from "@/lib/storage";
+import {
+  saveProjectRecord,
+  deleteProjectRecord,
+  normalizeProject,
+  type SavedProject,
+} from "@/lib/projects";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WordInfo {
@@ -51,24 +57,6 @@ interface SubtitleEntry {
   text: string;
   roman_text?: string;
   words: WordInfo[];
-}
-
-export interface SavedProject {
-  id: string;
-  user_id?: string;
-  job_id: string;
-  name: string;
-  filename: string;
-  duration: number;
-  language: string;
-  subtitles: SubtitleEntry[];
-  caption_style?: Record<string, unknown>;
-  file_size?: number;
-  storage_path?: string | null;
-  video_url?: string | null;
-  status?: string;
-  created_at: string;
-  updated_at?: string;
 }
 
 interface JobState {
@@ -208,7 +196,7 @@ function DashboardPageContent() {
         .limit(12);
 
       if (!error && data) {
-        setProjects(data as SavedProject[]);
+        setProjects((data as Record<string, unknown>[]).map(normalizeProject));
       }
     } catch (err) {
       console.warn("Could not load projects from Supabase:", err);
@@ -264,33 +252,24 @@ function DashboardPageContent() {
 
           const meta = currentUploadMetaRef.current;
 
-          supabase
-            .from("projects")
-            .upsert(
-              {
-                user_id: user.id,
-                job_id: data.job_id,
-                name: data.filename || "Untitled Project",
-                filename: data.filename,
-                duration: data.duration || 0,
-                language: data.detected_language || "auto",
-                subtitles: data.subtitles || [],
-                caption_style: activeTemplateStyle,
-                file_size: meta?.fileSize || 0,
-                storage_path: meta?.storagePath || null,
-                video_url: meta?.videoUrl || null,
-                status: "completed",
-              },
-              { onConflict: "job_id" }
-            )
-            .then(({ error }) => {
-              if (error) {
-                console.warn("Could not auto-save project to Supabase:", error.message);
-              } else {
-                loadProjects();
-                refreshUsage();
-              }
-            });
+          saveProjectRecord({
+            userId: user.id,
+            jobId: data.job_id,
+            filename: data.filename || "Untitled Project",
+            duration: data.duration || 0,
+            language: data.detected_language || "auto",
+            subtitles: data.subtitles || [],
+            captionStyle: activeTemplateStyle,
+            fileSize: meta?.fileSize || 0,
+            storagePath: meta?.storagePath || null,
+            videoUrl: meta?.videoUrl || null,
+            status: "completed",
+          }).then((saved) => {
+            if (saved) {
+              loadProjects();
+              refreshUsage();
+            }
+          });
         }
       }
       if (data.status === "failed" || data.error) {
@@ -506,13 +485,11 @@ function DashboardPageContent() {
   // ── Delete saved project ──
   const handleDeleteProject = async (e: React.MouseEvent, proj: SavedProject) => {
     e.stopPropagation();
-    if (!confirm(`Are you sure you want to delete "${proj.name || proj.filename}"?`)) return;
+    const title = proj.title || proj.name || proj.filename || "Untitled Project";
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
     try {
-      if (proj.storage_path) {
-        await deleteVideoFromStorage(proj.storage_path);
-      }
-      const { error } = await supabase.from("projects").delete().eq("id", proj.id);
-      if (!error) {
+      const ok = await deleteProjectRecord(proj);
+      if (ok) {
         setProjects((prev) => prev.filter((p) => p.id !== proj.id));
         await refreshUsage();
       }
@@ -1323,21 +1300,18 @@ function DashboardEditorLayout({
     if (!user) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase.from("projects").upsert(
-        {
-          user_id: user.id,
-          job_id: jobId,
-          name: filename,
-          filename,
-          duration: state.duration,
-          language: state.detectedLanguage || "auto",
-          subtitles: state.subtitles,
-          caption_style: state.captionStyle,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "job_id" },
-      );
-      if (!error) {
+      const ok = await saveProjectRecord({
+        userId: user.id,
+        jobId,
+        filename,
+        duration: state.duration,
+        language: state.detectedLanguage || "auto",
+        subtitles: state.subtitles,
+        captionStyle: state.captionStyle as Record<string, unknown>,
+        videoUrl: state.videoSrc || null,
+        status: "completed",
+      });
+      if (ok) {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 2500);
       }
