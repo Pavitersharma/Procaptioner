@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import { Menu, X, SunMedium, Moon } from "lucide-react";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
+import { useAuth } from "@/lib/auth";
 import { Btn } from "./primitives";
 
 interface NavItem {
@@ -20,6 +21,7 @@ const navLinks: NavItem[] = [
 ];
 
 export function Nav() {
+  const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [light, setLight] = useState(false);
@@ -103,6 +105,20 @@ export function Nav() {
               );
             }
 
+            if (l.to === "/editor" && !user) {
+              return (
+                <a
+                  key={l.label}
+                  href="/signin?redirect=/editor"
+                  className={`font-mono text-[0.7rem] tracking-[0.16em] uppercase transition-colors hover:text-foreground ${
+                    currentPath === l.to ? "text-brand-orange font-semibold" : "text-muted-foreground"
+                  }`}
+                >
+                  {l.label}
+                </a>
+              );
+            }
+
             return (
               <Link
                 key={l.label}
@@ -127,16 +143,33 @@ export function Nav() {
             {light ? <Moon className="h-4 w-4" /> : <SunMedium className="h-4 w-4" />}
           </button>
 
-          <Link
-            to="/login"
-            className="hidden font-mono text-[0.7rem] tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:text-foreground md:inline px-2 py-1.5"
-          >
-            Log in
-          </Link>
+          {user ? (
+            <>
+              <Link
+                to="/dashboard"
+                className="hidden font-mono text-[0.7rem] tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:text-foreground md:inline px-2 py-1.5"
+              >
+                Dashboard
+              </Link>
 
-          <Link to="/editor" className="hidden md:inline-flex">
-            <Btn className="h-10">Start creating</Btn>
-          </Link>
+              <Link to="/editor" className="hidden md:inline-flex">
+                <Btn className="h-10">Start creating</Btn>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/signin"
+                className="hidden font-mono text-[0.7rem] tracking-[0.16em] text-muted-foreground uppercase transition-colors hover:text-foreground md:inline px-2 py-1.5"
+              >
+                Log in
+              </Link>
+
+              <a href="/signin?redirect=/editor" className="hidden md:inline-flex">
+                <Btn className="h-10">Start creating</Btn>
+              </a>
+            </>
+          )}
 
           {/* Mobile hamburger button */}
           <button
@@ -168,6 +201,19 @@ export function Nav() {
                 );
               }
 
+              if (l.to === "/editor" && !user) {
+                return (
+                  <a
+                    key={l.label}
+                    href="/signin?redirect=/editor"
+                    onClick={() => setOpen(false)}
+                    className="border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground"
+                  >
+                    {l.label}
+                  </a>
+                );
+              }
+
               return (
                 <Link
                   key={l.label}
@@ -186,28 +232,60 @@ export function Nav() {
 
             {/* Mobile Auth and Action Links */}
             <div className="pt-2 space-y-1">
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground"
-              >
-                <span>Log in</span>
-                <span className="text-brand-orange">→</span>
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-brand-orange font-semibold hover:text-brand-orange/80"
+                  >
+                    <span>Dashboard</span>
+                    <span className="text-brand-orange">→</span>
+                  </Link>
 
-              <Link
-                to="/signup"
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-brand-orange font-semibold hover:text-brand-orange/80"
-              >
-                <span>Create Account</span>
-                <span className="text-brand-orange">→</span>
-              </Link>
+                  <Link
+                    to="/profile"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Profile & Settings</span>
+                    <span className="text-muted-foreground">→</span>
+                  </Link>
+
+                  <Link to="/editor" onClick={() => setOpen(false)} className="mt-5 w-full">
+                    <Btn className="w-full">Open Editor</Btn>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/signin"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-muted-foreground hover:text-foreground"
+                  >
+                    <span>Log in</span>
+                    <span className="text-brand-orange">→</span>
+                  </Link>
+
+                  <Link
+                    to="/signup"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between border-b border-border/60 py-3.5 font-mono text-xs tracking-[0.16em] uppercase text-brand-orange font-semibold hover:text-brand-orange/80"
+                  >
+                    <span>Create Account</span>
+                    <span className="text-brand-orange">→</span>
+                  </Link>
+
+                  <a
+                    href="/signin?redirect=/editor"
+                    onClick={() => setOpen(false)}
+                    className="mt-5 w-full inline-block"
+                  >
+                    <Btn className="w-full">Start creating</Btn>
+                  </a>
+                </>
+              )}
             </div>
-
-            <Link to="/editor" onClick={() => setOpen(false)} className="mt-5 w-full">
-              <Btn className="w-full">Start creating</Btn>
-            </Link>
           </div>
         </div>
       )}

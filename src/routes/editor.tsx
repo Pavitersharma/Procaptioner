@@ -22,6 +22,11 @@ import { InspectorPanel } from "@/components/editor/inspector-panel";
 import { TimelinePanel } from "@/components/editor/timeline-panel";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
 import { NotFoundComponent } from "@/components/not-found";
+import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useUsage, validateUploadQuota } from "@/lib/usage";
+import { uploadVideoToStorage } from "@/lib/storage";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WordInfo {
@@ -118,6 +123,21 @@ export const Route = createFileRoute("/editor")({
 });
 
 function EditorPage() {
+  return (
+    <ProtectedRoute>
+      <EditorPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function EditorPageContent() {
+  const { user } = useAuth();
+  const { usage, refreshUsage } = useUsage();
+  const currentUploadMetaRef = useRef<{
+    fileSize: number;
+    storagePath: string | null;
+    videoUrl: string | null;
+  } | null>(null);
   const [phase, setPhase] = useState<"upload" | "processing" | "editor">(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -261,6 +281,36 @@ function EditorPage() {
       if (data.status === "completed") {
         setPhase("editor");
         es.close();
+
+        // Auto-save project to Supabase if logged in
+        if (user) {
+          const meta = currentUploadMetaRef.current;
+          supabase
+            .from("projects")
+            .upsert(
+              {
+                user_id: user.id,
+                job_id: data.job_id,
+                name: data.filename || "Untitled Project",
+                filename: data.filename,
+                duration: data.duration || 0,
+                language: data.detected_language || "auto",
+                subtitles: data.subtitles || [],
+                file_size: meta?.fileSize || 0,
+                storage_path: meta?.storagePath || null,
+                video_url: meta?.videoUrl || null,
+                status: "completed",
+              },
+              { onConflict: "job_id" }
+            )
+            .then(({ error }) => {
+              if (error) {
+                console.warn("Could not auto-save project to Supabase:", error.message);
+              } else {
+                refreshUsage();
+              }
+            });
+        }
       }
       if (data.status === "failed" || data.error) {
         setHasError(true);
@@ -273,7 +323,7 @@ function EditorPage() {
       es.close();
     };
     return () => es.close();
-  }, [job?.job_id, phase]);
+  }, [job?.job_id, phase, user, refreshUsage]);
 
   // ── Track video time for subtitle highlighting ──
   useEffect(() => {
@@ -337,6 +387,11 @@ function EditorPage() {
 
   // ── File select & modal trigger ──
   const onFileSelect = (file: File) => {
+    const quota = validateUploadQuota(file, usage);
+    if (!quota.valid) {
+      alert(quota.reason);
+      return;
+    }
     setPendingFile(file);
     setModalSourceLang(sourceLang || "auto");
     setModalBurnIn(burnIn);
@@ -350,6 +405,22 @@ function EditorPage() {
     setSourceLang(modalSourceLang);
     setBurnIn(modalBurnIn);
     setScript(modalScript);
+
+    // Upload video directly to Supabase Storage
+    let storageData: { storagePath: string; videoUrl: string } | null = null;
+    if (user) {
+      try {
+        storageData = await uploadVideoToStorage(pendingFile, user.id);
+      } catch (storageErr) {
+        console.warn("Supabase storage upload error:", storageErr);
+      }
+    }
+
+    currentUploadMetaRef.current = {
+      fileSize: pendingFile.size,
+      storagePath: storageData?.storagePath || null,
+      videoUrl: storageData?.videoUrl || null,
+    };
 
     await handleUpload(pendingFile, {
       sourceLang: modalSourceLang,
@@ -953,8 +1024,40 @@ interface EditorLayoutProps {
   filename: string;
 }
 
-function EditorLayout({ videoRef, filename }: EditorLayoutProps) {
+function EditorLayout({ videoRef, jobId, filename }: EditorLayoutProps) {
   const { state, dispatch, canUndo, canRedo } = useEditor();
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleSaveProject = async () => {
+    if (!user) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from("projects").upsert(
+        {
+          user_id: user.id,
+          job_id: jobId,
+          name: filename,
+          filename,
+          duration: state.duration,
+          language: state.detectedLanguage || "auto",
+          subtitles: state.subtitles,
+          caption_style: state.captionStyle,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "job_id" },
+      );
+      if (!error) {
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2500);
+      }
+    } catch (e) {
+      console.warn("Failed to save project:", e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // ── Mobile drawer state ──
   const [mobileSidebar, setMobileSidebar] = useState(false);
@@ -1111,8 +1214,28 @@ function EditorLayout({ videoRef, filename }: EditorLayoutProps) {
           </button>
         </div>
 
-        {/* Right: Mobile inspector toggle */}
+        {/* Right: Save Project & Mobile inspector toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {user && (
+            <button
+              onClick={handleSaveProject}
+              disabled={isSaving}
+              className={cn(
+                "hidden sm:flex items-center gap-1.5 rounded border border-white/[0.12] bg-white/[0.04] px-2.5 py-1 font-mono text-[0.62rem] text-white/70 transition-all hover:bg-white/[0.08] hover:text-white cursor-pointer",
+                savedSuccess && "border-green-500/40 bg-green-500/10 text-green-400",
+              )}
+            >
+              {isSaving ? (
+                <Loader2 className="h-3 w-3 animate-spin text-white/60" />
+              ) : savedSuccess ? (
+                <Check className="h-3 w-3 text-green-400" />
+              ) : (
+                <Film className="h-3 w-3 text-white/60" />
+              )}
+              <span>{savedSuccess ? "Saved to Cloud" : "Save Project"}</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               setMobileInspector((v) => !v);

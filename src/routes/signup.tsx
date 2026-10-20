@@ -150,24 +150,34 @@ export function SignUpPage() {
       }
 
       if (data.session) {
-        navigate({ to: "/dashboard" });
+        navigate({ to: getRedirectTarget() as any });
       } else {
         setSuccessMsg(
           "Account registered! If confirmation is required, please check your email inbox to verify."
         );
         setTimeout(() => {
-          navigate({ to: "/dashboard" });
+          navigate({ to: getRedirectTarget() as any });
         }, 3000);
       }
     }
   };
 
+  const getRedirectTarget = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const r = params.get("redirect");
+      if (r && r.startsWith("/")) return r;
+    }
+    return "/dashboard";
+  };
+
   const handleGoogleLogin = async () => {
     setAuthError(null);
+    const dest = getRedirectTarget();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}${dest}`,
       },
     });
     if (error) setAuthError(error.message);
@@ -175,10 +185,11 @@ export function SignUpPage() {
 
   const handleFacebookLogin = async () => {
     setAuthError(null);
+    const dest = getRedirectTarget();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "facebook",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}${dest}`,
       },
     });
     if (error) setAuthError(error.message);
@@ -453,6 +464,7 @@ export function SignUpPage() {
         Already have an account?{" "}
         <Link
           to="/login"
+          search={{ redirect: getRedirectTarget() } as any}
           className="font-semibold text-[#ff7a00] transition-colors hover:text-[#ff9233] hover:underline"
         >
           Log in

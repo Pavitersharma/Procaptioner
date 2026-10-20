@@ -76,6 +76,15 @@ export function SignInPage() {
     }
   };
 
+  const getRedirectTarget = () => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const r = params.get("redirect");
+      if (r && r.startsWith("/")) return r;
+    }
+    return "/dashboard";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTouched({ email: true, password: true });
@@ -99,24 +108,25 @@ export function SignInPage() {
       }
 
       if (data.session) {
-        navigate({ to: "/dashboard" });
+        navigate({ to: getRedirectTarget() as any });
       }
     }
   };
 
   const handleGoogleLogin = async () => {
     setAuthError(null);
+    const dest = getRedirectTarget();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}${dest}`,
       },
     });
     if (error) setAuthError(error.message);
   };
 
   const handleSocialLogin = () => {
-    navigate({ to: "/dashboard" });
+    navigate({ to: getRedirectTarget() as any });
   };
 
   const handleForgotPassword = async (e: React.MouseEvent) => {
@@ -344,6 +354,7 @@ export function SignInPage() {
         Don&apos;t have an account?{" "}
         <Link
           to="/signup"
+          search={{ redirect: getRedirectTarget() } as any}
           className="font-semibold text-[#ff7a00] transition-colors hover:text-[#ff9233] hover:underline"
         >
           Sign up

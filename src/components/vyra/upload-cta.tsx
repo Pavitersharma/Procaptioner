@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useAuth } from "@/lib/auth";
 import { SectionTag, Btn } from "./primitives";
 
 export function UploadCta() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [over, setOver] = useState(false);
   const [state, setState] = useState<"idle" | "processing">("idle");
 
@@ -20,7 +23,11 @@ export function UploadCta() {
             onDrop={(e) => {
               e.preventDefault();
               setOver(false);
-              window.location.href = "/editor";
+              if (user) {
+                navigate({ to: "/editor" });
+              } else {
+                navigate({ to: "/signin", search: { redirect: "/editor" } });
+              }
             }}
             className="relative grid min-h-[22rem] place-items-center bg-surface-0 p-8 transition-colors duration-300"
             style={{
@@ -41,11 +48,19 @@ export function UploadCta() {
                 {over ? "Release to upload." : "Drop your story here."}
               </p>
               <p className="label-mono mt-4">MP4, MOV, WebM up to 5GB</p>
-              <Link to="/editor" className="mt-8 inline-block">
-                <Btn>
-                  Choose a file <span className="text-accent-foreground/70">→</span>
-                </Btn>
-              </Link>
+              {user ? (
+                <Link to="/editor" className="mt-8 inline-block">
+                  <Btn>
+                    Choose a file <span className="text-accent-foreground/70">→</span>
+                  </Btn>
+                </Link>
+              ) : (
+                <a href="/signin?redirect=/editor" className="mt-8 inline-block">
+                  <Btn>
+                    Choose a file <span className="text-accent-foreground/70">→</span>
+                  </Btn>
+                </a>
+              )}
             </div>
           </div>
 

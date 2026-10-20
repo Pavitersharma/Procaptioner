@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState, useRef, useEffect, type ReactNode } from "react";
 import { ProCaptionerLogo } from "@/components/brand/pro-captioner-logo";
 import { useAuth } from "@/lib/auth";
+import { useUsage, formatBytes, formatMinutes } from "@/lib/usage";
 import {
   Home,
   Sparkles,
@@ -32,6 +33,7 @@ const sidebarLinks = [
 export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { usage } = useUsage();
   const [searchQuery, setSearchQuery] = useState("");
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -142,11 +144,13 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
         </nav>
       </div>
 
-      {/* Bottom: Free Tier Usage Card */}
+      {/* Bottom: Dynamic Usage Card */}
       <div className="space-y-4 pt-4">
         <div className="rounded-xl border border-neutral-800/80 bg-[#121212] p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-white tracking-wide">FREE</span>
+            <span className="text-sm font-bold text-white tracking-wide uppercase font-mono">
+              {usage.plan}
+            </span>
             <span className="rounded-md bg-[#ff7a1a]/10 px-2 py-0.5 text-[0.6rem] font-bold tracking-widest text-[#ff7a1a] border border-[#ff7a1a]/25 uppercase font-mono">
               MONTHLY
             </span>
@@ -155,18 +159,37 @@ export function DashboardLayout({ activeTab, children }: DashboardLayoutProps) {
           <div className="space-y-2 text-[0.75rem]">
             <div className="flex justify-between text-neutral-400">
               <span>Storage</span>
-              <span className="text-white/80 font-mono text-xs">&lt; 0.1 GB / 5.0 GB</span>
+              <span className="text-white/80 font-mono text-xs">
+                {formatBytes(usage.storageUsedBytes)} / {formatBytes(usage.storageLimitBytes)}
+              </span>
             </div>
             <div className="flex justify-between text-neutral-400">
               <span>Transcription</span>
-              <span className="text-white/80 font-mono text-xs">4.3 mins left</span>
+              <span className="text-white/80 font-mono text-xs">
+                {formatMinutes(usage.transcriptionRemainingSeconds)} left
+              </span>
             </div>
             <div className="mt-1.5 flex h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-[#ff7a1a] w-[15%] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.4)]" />
+              <div
+                className="h-full bg-[#ff7a1a] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.4)] transition-all duration-300"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.max(
+                      2,
+                      Math.round(
+                        (usage.storageUsedBytes / (usage.storageLimitBytes || 1)) * 100,
+                      ),
+                    ),
+                  )}%`,
+                }}
+              />
             </div>
             <div className="flex justify-between text-neutral-400 pt-0.5">
               <span>Audio Clean</span>
-              <span className="text-white/80 font-mono text-xs">0 / 3</span>
+              <span className="text-white/80 font-mono text-xs">
+                {usage.audioCleanUsed} / {usage.audioCleanLimit}
+              </span>
             </div>
           </div>
         </div>

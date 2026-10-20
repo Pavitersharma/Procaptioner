@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { SettingsView } from "@/components/dashboard/settings-view";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -17,8 +18,10 @@ export const Route = createFileRoute("/profile")({
 
 export function ProfilePage() {
   return (
-    <DashboardLayout activeTab="settings">
-      <SettingsView />
-    </DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout activeTab="settings">
+        <SettingsView />
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

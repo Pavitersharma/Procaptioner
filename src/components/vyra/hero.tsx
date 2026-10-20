@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Play, Sparkles } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 import { Magnetic, Btn } from "./primitives";
 import heroFrame from "@/assets/hero-frame.jpg";
 
@@ -48,6 +49,7 @@ function CaptionRender({
 }
 
 export function Hero() {
+  const { user } = useAuth();
   const [idx, setIdx] = useState(0);
   const [word, setWord] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -132,11 +134,19 @@ export function Hero() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Magnetic>
-              <Link to="/editor">
-                <Btn>
-                  Start creating <span className="text-accent-foreground/70">→</span>
-                </Btn>
-              </Link>
+              {user ? (
+                <Link to="/editor">
+                  <Btn>
+                    Start creating <span className="text-accent-foreground/70">→</span>
+                  </Btn>
+                </Link>
+              ) : (
+                <a href="/signin?redirect=/editor">
+                  <Btn>
+                    Start creating <span className="text-accent-foreground/70">→</span>
+                  </Btn>
+                </a>
+              )}
             </Magnetic>
             <Magnetic>
               <Btn

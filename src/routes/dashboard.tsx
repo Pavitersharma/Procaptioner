@@ -31,6 +31,9 @@ import { NotFoundComponent } from "@/components/not-found";
 import { CREATOR_PRO_FEATURES } from "@/components/vyra/pricing";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useUsage, formatBytes, formatMinutes, validateUploadQuota } from "@/lib/usage";
+import { uploadVideoToStorage, deleteVideoFromStorage } from "@/lib/storage";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface WordInfo {
@@ -60,6 +63,10 @@ export interface SavedProject {
   language: string;
   subtitles: SubtitleEntry[];
   caption_style?: Record<string, unknown>;
+  file_size?: number;
+  storage_path?: string | null;
+  video_url?: string | null;
+  status?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -132,9 +139,23 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 export function DashboardPage() {
+  return (
+    <ProtectedRoute>
+      <DashboardPageContent />
+    </ProtectedRoute>
+  );
+}
+
+function DashboardPageContent() {
   const { user } = useAuth();
+  const { usage, refreshUsage } = useUsage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const currentUploadMetaRef = useRef<{
+    fileSize: number;
+    storagePath: string | null;
+    videoUrl: string | null;
+  } | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   // Editor flow state — all phases run in the dashboard
@@ -241,6 +262,8 @@ export function DashboardPage() {
             }
           } catch {}
 
+          const meta = currentUploadMetaRef.current;
+
           supabase
             .from("projects")
             .upsert(
@@ -253,6 +276,10 @@ export function DashboardPage() {
                 language: data.detected_language || "auto",
                 subtitles: data.subtitles || [],
                 caption_style: activeTemplateStyle,
+                file_size: meta?.fileSize || 0,
+                storage_path: meta?.storagePath || null,
+                video_url: meta?.videoUrl || null,
+                status: "completed",
               },
               { onConflict: "job_id" }
             )
@@ -261,6 +288,7 @@ export function DashboardPage() {
                 console.warn("Could not auto-save project to Supabase:", error.message);
               } else {
                 loadProjects();
+                refreshUsage();
               }
             });
         }
@@ -276,7 +304,7 @@ export function DashboardPage() {
       es.close();
     };
     return () => es.close();
-  }, [job?.job_id, phase, user, loadProjects]);
+  }, [job?.job_id, phase, user, loadProjects, refreshUsage]);
 
   // ── Track video time for subtitle highlighting ──
   useEffect(() => {
@@ -340,6 +368,12 @@ export function DashboardPage() {
 
   // ── File select & modal trigger ──
   const onFileSelect = (file: File) => {
+    const quota = validateUploadQuota(file, usage);
+    if (!quota.valid) {
+      alert(quota.reason);
+      setShowUpgradeModal(true);
+      return;
+    }
     setPendingFile(file);
     setModalSourceLang(sourceLang || "auto");
     setModalBurnIn(burnIn);
@@ -353,6 +387,22 @@ export function DashboardPage() {
     setSourceLang(modalSourceLang);
     setBurnIn(modalBurnIn);
     setScript(modalScript);
+
+    // Upload video file directly to Supabase Storage in user's isolated folder
+    let storageData: { storagePath: string; videoUrl: string } | null = null;
+    if (user) {
+      try {
+        storageData = await uploadVideoToStorage(pendingFile, user.id);
+      } catch (storageErr) {
+        console.warn("Supabase storage upload error:", storageErr);
+      }
+    }
+
+    currentUploadMetaRef.current = {
+      fileSize: pendingFile.size,
+      storagePath: storageData?.storagePath || null,
+      videoUrl: storageData?.videoUrl || null,
+    };
 
     await handleUpload(pendingFile, {
       sourceLang: modalSourceLang,
@@ -444,19 +494,27 @@ export function DashboardPage() {
       (reconstructedJob as unknown as Record<string, unknown>)["caption_style"] =
         proj.caption_style;
     }
+    if (proj.video_url) {
+      (reconstructedJob as unknown as Record<string, unknown>)["video_url"] =
+        proj.video_url;
+    }
 
     setJob(reconstructedJob);
     setPhase("editor");
   };
 
   // ── Delete saved project ──
-  const handleDeleteProject = async (e: React.MouseEvent, projId: string) => {
+  const handleDeleteProject = async (e: React.MouseEvent, proj: SavedProject) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this project?")) return;
+    if (!confirm(`Are you sure you want to delete "${proj.name || proj.filename}"?`)) return;
     try {
-      const { error } = await supabase.from("projects").delete().eq("id", projId);
+      if (proj.storage_path) {
+        await deleteVideoFromStorage(proj.storage_path);
+      }
+      const { error } = await supabase.from("projects").delete().eq("id", proj.id);
       if (!error) {
-        setProjects((prev) => prev.filter((p) => p.id !== projId));
+        setProjects((prev) => prev.filter((p) => p.id !== proj.id));
+        await refreshUsage();
       }
     } catch (err) {
       console.warn("Failed to delete project:", err);
@@ -627,7 +685,9 @@ export function DashboardPage() {
         savedPrefs.subtitles && savedPrefs.subtitles.length > 0
           ? savedPrefs.subtitles
           : baseSubtitles,
-      videoSrc: `${API_BASE}/api/job/${job.job_id}/original-video`,
+      videoSrc:
+        ((job as unknown as Record<string, unknown>)["video_url"] as string) ||
+        `${API_BASE}/api/job/${job.job_id}/original-video`,
       duration: job.duration,
       hasSrt: job.has_srt,
       hasVtt: job.has_vtt,
@@ -741,14 +801,18 @@ export function DashboardPage() {
             <p className="font-mono text-[0.62rem] tracking-[0.2em] text-neutral-500 uppercase">
               Plan
             </p>
-            <p className="mt-2 text-2xl font-bold text-white">Free</p>
-            <p className="mt-1.5 text-xs text-neutral-400">Basic access with limited credits</p>
+            <p className="mt-2 text-2xl font-bold text-white uppercase font-mono">{usage.plan}</p>
+            <p className="mt-1.5 text-xs text-neutral-400">
+              {usage.plan === "free"
+                ? "Basic access with 5GB storage & 60m quota"
+                : "Unlimited access & priority processing"}
+            </p>
             <button
               type="button"
               onClick={() => setShowUpgradeModal(true)}
               className="mt-4 block w-full text-center rounded-lg border border-[#ff7a1a]/30 bg-[#ff7a1a]/10 py-2 text-xs font-semibold text-[#ff7a1a] transition-all hover:bg-[#ff7a1a] hover:text-black cursor-pointer shadow-[0_0_15px_-4px_rgba(255,122,26,0.25)]"
             >
-              Upgrade to Creator Pro
+              {usage.plan === "free" ? "Upgrade to Creator Pro" : "Manage Subscription"}
             </button>
           </div>
 
@@ -758,11 +822,28 @@ export function DashboardPage() {
               Storage Used
             </p>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white">—</span>
-              <span className="font-mono text-xs text-neutral-500">of 5.0 GB</span>
+              <span className="text-2xl font-bold text-white font-mono">
+                {formatBytes(usage.storageUsedBytes)}
+              </span>
+              <span className="font-mono text-xs text-neutral-500">
+                of {formatBytes(usage.storageLimitBytes)}
+              </span>
             </div>
             <div className="mt-4 h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-[#ff7a1a] w-[2%] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.5)] transition-all" />
+              <div
+                className="h-full bg-[#ff7a1a] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.5)] transition-all duration-300"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.max(
+                      2,
+                      Math.round(
+                        (usage.storageUsedBytes / (usage.storageLimitBytes || 1)) * 100,
+                      ),
+                    ),
+                  )}%`,
+                }}
+              />
             </div>
           </div>
 
@@ -772,11 +853,30 @@ export function DashboardPage() {
               Transcription
             </p>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-white">0 min</span>
-              <span className="font-mono text-xs text-neutral-500">of 60 min</span>
+              <span className="text-2xl font-bold text-white font-mono">
+                {formatMinutes(usage.transcriptionUsedSeconds)}
+              </span>
+              <span className="font-mono text-xs text-neutral-500">
+                of {formatMinutes(usage.transcriptionLimitSeconds)} ({formatMinutes(usage.transcriptionRemainingSeconds)} left)
+              </span>
             </div>
             <div className="mt-4 h-1.5 w-full rounded-full bg-neutral-800 overflow-hidden">
-              <div className="h-full bg-[#ff7a1a] w-[0%] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.5)] transition-all" />
+              <div
+                className="h-full bg-[#ff7a1a] rounded-full shadow-[0_0_8px_rgba(255,122,26,0.5)] transition-all duration-300"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    Math.max(
+                      2,
+                      Math.round(
+                        (usage.transcriptionUsedSeconds /
+                          (usage.transcriptionLimitSeconds || 1)) *
+                          100,
+                      ),
+                    ),
+                  )}%`,
+                }}
+              />
             </div>
           </div>
         </div>
@@ -887,13 +987,19 @@ export function DashboardPage() {
                         </span>
                         <span>•</span>
                         <span>{proj.subtitles?.length || 0} cues</span>
+                        {proj.file_size ? (
+                          <>
+                            <span>•</span>
+                            <span>{formatBytes(proj.file_size)}</span>
+                          </>
+                        ) : null}
                       </div>
                     </div>
 
                     {/* Delete action */}
                     <button
                       type="button"
-                      onClick={(e) => handleDeleteProject(e, proj.id)}
+                      onClick={(e) => handleDeleteProject(e, proj)}
                       className="p-1 text-neutral-500 hover:text-red-400 transition-colors rounded hover:bg-neutral-800"
                       title="Delete project"
                     >

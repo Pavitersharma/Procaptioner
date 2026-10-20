@@ -559,6 +559,15 @@ async def _run_pipeline(
         video_info = await loop.run_in_executor(None, probe_video, job.video_path)
         job.duration = video_info["duration"]
 
+        # Enforce plan video duration limit (Free plan max: 3 minutes / 180s)
+        if job.duration > 185:
+            await job.update(
+                JobStatus.FAILED,
+                1.0,
+                f"Video duration ({round(job.duration)}s) exceeds Free plan limit of 3 minutes (180s). Please trim your footage or upgrade to Creator Pro.",
+            )
+            return
+
         audio_path = job_dir / "audio.wav"
         await loop.run_in_executor(None, extract_audio, job.video_path, audio_path)
         job.audio_path = audio_path

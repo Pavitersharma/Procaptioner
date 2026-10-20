@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { TemplatesView } from "@/components/dashboard/templates-view";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export const Route = createFileRoute("/templates")({
   head: () => ({
@@ -17,8 +18,10 @@ export const Route = createFileRoute("/templates")({
 
 export function TemplatesPage() {
   return (
-    <DashboardLayout activeTab="templates">
-      <TemplatesView />
-    </DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout activeTab="templates">
+        <TemplatesView />
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }
