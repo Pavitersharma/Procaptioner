@@ -12,9 +12,12 @@ import {
   Sparkles,
   ExternalLink,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useUsage } from "@/lib/usage";
 import { supabase } from "@/lib/supabase";
+import { UpgradeModal } from "@/components/payment/upgrade-modal";
 
 export interface UserProfile {
   name: string;
@@ -61,6 +64,8 @@ const LANGUAGES = [
 
 export function SettingsView() {
   const { user, refreshUser } = useAuth();
+  const { usage } = useUsage();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Main profile state
@@ -241,6 +246,58 @@ export function SettingsView() {
             <span className="rounded bg-neutral-800/80 px-2 py-0.5 text-[0.65rem] font-medium text-neutral-400 border border-neutral-700/40">
               via {profile.authProvider}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Section: Plan & Billing ── */}
+      <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[260px_1fr]">
+        <div>
+          <h2 className="text-sm font-semibold text-white">Subscription & Plan</h2>
+          <p className="mt-1 text-xs text-neutral-400 leading-relaxed">
+            Manage your billing, plan tier, and export allowances.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-neutral-800/80 bg-[#121212] p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-bold uppercase text-white">
+                  {usage.plan === "creator_pro" ? "Creator Pro Plan" : "Free Plan"}
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 font-mono text-[0.62rem] font-bold uppercase border ${
+                    usage.plan === "creator_pro"
+                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                      : "border-neutral-700 bg-neutral-800 text-neutral-400"
+                  }`}
+                >
+                  {usage.plan === "creator_pro" ? "Active" : "Free Tier"}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-400">
+                {usage.plan === "creator_pro"
+                  ? "₹199 / month • Watermark-free HD exports, 5 GB storage & priority processing active."
+                  : "Basic preview access with watermarked exports and standard queue."}
+              </p>
+            </div>
+
+            {usage.plan === "creator_pro" ? (
+              <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 font-mono text-xs font-semibold text-emerald-400">
+                <Check className="h-3.5 w-3.5" />
+                <span>Subscribed</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowUpgradeModal(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#ff7a1a] px-4 py-2 font-mono text-xs font-bold text-black uppercase shadow-md shadow-orange-500/20 transition-all hover:bg-[#ff5b00] active:scale-[0.98] cursor-pointer shrink-0"
+              >
+                <Zap className="h-3.5 w-3.5 fill-black" />
+                <span>Upgrade to Creator Pro (₹199)</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -653,6 +710,12 @@ export function SettingsView() {
           </div>
         </div>
       )}
+
+      {/* ── Creator Pro Upgrade Modal (Razorpay) ── */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

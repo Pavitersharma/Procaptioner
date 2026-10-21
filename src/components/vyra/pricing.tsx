@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Type,
@@ -13,6 +14,9 @@ import {
   Zap,
 } from "lucide-react";
 import { SectionTag } from "./primitives";
+import { useAuth } from "@/lib/auth";
+import { useUsage } from "@/lib/usage";
+import { UpgradeModal } from "@/components/payment/upgrade-modal";
 
 export const CREATOR_PRO_FEATURES = [
   {
@@ -53,6 +57,12 @@ export const CREATOR_PRO_FEATURES = [
 ] as const;
 
 export function Pricing({ heading = true }: { heading?: boolean }) {
+  const { user } = useAuth();
+  const { usage } = useUsage();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const isPro = usage.plan === "creator_pro";
+
   return (
     <section id="pricing" className="border-t border-border py-20 md:py-32 font-sans">
       <div className="mx-auto max-w-[1280px] px-5 md:px-10">
@@ -105,13 +115,30 @@ export function Pricing({ heading = true }: { heading?: boolean }) {
 
               {/* CTA Button */}
               <div className="pt-4 max-w-md mx-auto">
-                <Link
-                  to="/signup"
-                  className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7a1a] py-3.5 px-6 font-mono text-xs sm:text-sm font-bold tracking-[0.14em] text-black uppercase shadow-lg shadow-orange-500/25 transition-all duration-200 hover:bg-[#ff5b00] active:scale-[0.98] cursor-pointer"
-                >
-                  <Zap className="h-4 w-4" />
-                  <span>Unlock Export — ₹199/month</span>
-                </Link>
+                {isPro ? (
+                  <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 py-3.5 px-6 font-mono text-xs sm:text-sm font-bold tracking-[0.14em] text-emerald-400 uppercase">
+                    <Check className="h-4 w-4 stroke-[2.5]" />
+                    <span>Active Plan — Creator Pro</span>
+                  </div>
+                ) : user ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7a1a] py-3.5 px-6 font-mono text-xs sm:text-sm font-bold tracking-[0.14em] text-black uppercase shadow-lg shadow-orange-500/25 transition-all duration-200 hover:bg-[#ff5b00] active:scale-[0.98] cursor-pointer"
+                  >
+                    <Zap className="h-4 w-4 fill-black" />
+                    <span>Subscribe to Creator Pro — ₹199/month</span>
+                  </button>
+                ) : (
+                  <Link
+                    to="/signin"
+                    search={{ redirect: "/pricing" }}
+                    className="group relative flex w-full items-center justify-center gap-2 rounded-xl bg-[#ff7a1a] py-3.5 px-6 font-mono text-xs sm:text-sm font-bold tracking-[0.14em] text-black uppercase shadow-lg shadow-orange-500/25 transition-all duration-200 hover:bg-[#ff5b00] active:scale-[0.98] cursor-pointer"
+                  >
+                    <Zap className="h-4 w-4 fill-black" />
+                    <span>Unlock Export — ₹199/month</span>
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -170,6 +197,12 @@ export function Pricing({ heading = true }: { heading?: boolean }) {
           </div>
         </div>
       </div>
+
+      {/* ── Creator Pro Upgrade Modal (Razorpay) ── */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </section>
   );
 }

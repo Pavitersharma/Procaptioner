@@ -48,6 +48,8 @@ backend/pipeline/__pycache__/
 # Workspace
 .workspace/
 .agents/
+scratch/
+
 .pytest_cache/
 test-*.png
 

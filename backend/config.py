@@ -65,3 +65,11 @@ DEEPGRAM_COST_PER_MINUTE = float(os.getenv("DEEPGRAM_COST_PER_MINUTE", "0.0043")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
+# ─── Razorpay Configuration ───────────────────────────────────────────────────
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_TqW64p9kuj4qLc")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "TNZq56b3JbbHc54gHYbNotAt")
+
+# ─── Supabase Configuration ───────────────────────────────────────────────────
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_KEY", ""))
+

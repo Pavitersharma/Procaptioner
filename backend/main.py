@@ -20,12 +20,30 @@ from pydantic import BaseModel
 
 from config import (
     API_HOST, API_PORT, CORS_ORIGINS, UPLOAD_DIR, OUTPUT_DIR,
-    ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB
+    ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB,
+    RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET,
+    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
 )
 from languages import (
     ALL_LANGUAGES, get_language, get_languages_by_region,
     get_translation_languages, TranslationEngine,
 )
+
+import hmac
+import hashlib
+import razorpay
+
+# ─── Razorpay Client ──────────────────────────────────────────────────────────
+razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+# ─── Supabase Client (Admin) ──────────────────────────────────────────────────
+supabase_client = None
+if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+    try:
+        from supabase import create_client, Client
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    except Exception as e:
+        logger.warning(f"Failed to initialize Supabase client: {e}")
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -48,6 +66,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # ─── Job State ────────────────────────────────────────────────────────────────
@@ -165,11 +184,120 @@ class LanguageInfo(BaseModel):
     engine: str
 
 
+class CreatePaymentOrderRequest(BaseModel):
+    plan: str = "creator_pro"
+    user_id: str | None = None
+    user_email: str | None = None
+    amount_inr: int = 199
+
+
+class VerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    user_id: str
+    plan: str = "creator_pro"
+
+
 # ─── API Endpoints ───────────────────────────────────────────────────────────
 
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/payment/create-order")
+async def create_payment_order(req: CreatePaymentOrderRequest):
+    """
+    Creates a new Razorpay payment order for the specified plan.
+    Default: Creator Pro Plan at ₹199 (19900 paise).
+    """
+    try:
+        amount_paise = req.amount_inr * 100
+        user_short = req.user_id[:8] if req.user_id else "anon"
+        receipt_id = f"rcpt_{user_short}_{int(time.time())}"
+
+        order_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": receipt_id,
+            "notes": {
+                "plan": req.plan,
+                "user_id": req.user_id or "",
+                "user_email": req.user_email or "",
+            },
+        }
+        order = razorpay_client.order.create(data=order_data)
+        logger.info(f"Created Razorpay order: {order.get('id')} for user: {req.user_id}")
+        return {
+            "order_id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID,
+            "plan": req.plan,
+        }
+    except Exception as e:
+        logger.error(f"Failed to create Razorpay order: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to create payment order: {str(e)}")
+
+
+@app.post("/api/payment/verify")
+async def verify_payment(req: VerifyPaymentRequest):
+    """
+    Verifies the Razorpay payment signature and activates Creator Pro in Supabase.
+    """
+    try:
+        # 1. Verify HMAC SHA256 signature
+        msg = f"{req.razorpay_order_id}|{req.razorpay_payment_id}"
+        expected_sig = hmac.new(
+            RAZORPAY_KEY_SECRET.encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(expected_sig, req.razorpay_signature):
+            logger.warning(f"Invalid Razorpay payment signature for order {req.razorpay_order_id}")
+            raise HTTPException(status_code=400, detail="Payment signature verification failed.")
+
+        logger.info(f"Payment verified for order {req.razorpay_order_id}, payment {req.razorpay_payment_id}")
+
+        # 2. Upgrade user profile in Supabase
+        if supabase_client and req.user_id:
+            try:
+                supabase_client.table("profiles").update({
+                    "plan": req.plan,
+                }).eq("id", req.user_id).execute()
+                logger.info(f"Updated user {req.user_id} profile plan to '{req.plan}' in Supabase")
+            except Exception as s_err:
+                logger.warning(f"Could not update profile plan in Supabase: {s_err}")
+
+            # 3. Log transaction in payments table
+            try:
+                supabase_client.table("payments").insert({
+                    "user_id": req.user_id,
+                    "razorpay_order_id": req.razorpay_order_id,
+                    "razorpay_payment_id": req.razorpay_payment_id,
+                    "amount": 199,
+                    "currency": "INR",
+                    "plan": req.plan,
+                    "status": "captured",
+                }).execute()
+                logger.info(f"Logged payment record for user {req.user_id}")
+            except Exception as p_err:
+                logger.warning(f"Could not insert payment record: {p_err}")
+
+        return {
+            "success": True,
+            "message": "Payment verified successfully. Welcome to Creator Pro!",
+            "plan": req.plan,
+            "order_id": req.razorpay_order_id,
+            "payment_id": req.razorpay_payment_id,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error verifying payment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Payment verification failed: {str(e)}")
 
 
 @app.get("/api/languages")
@@ -858,4 +986,4 @@ if __name__ == "__main__":
     print(f"   Languages: {len(ALL_LANGUAGES)}")
     print(f"   API: http://localhost:{API_PORT}\n")
 
-    uvicorn.run(app, host=API_HOST, port=API_PORT)
+    uvicorn.run("main:app", host=API_HOST, port=API_PORT, reload=True)

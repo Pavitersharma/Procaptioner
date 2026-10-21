@@ -13,8 +13,11 @@ import {
   SkipBack,
   SkipForward,
   Loader2,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUsage } from "@/lib/usage";
+import { UpgradeModal } from "@/components/payment/upgrade-modal";
 import {
   useEditor,
   captionStyleToCSS,
@@ -159,7 +162,9 @@ const API_BASE = "http://localhost:8000";
 function ActionBar() {
   const { state, dispatch } = useEditor();
   const { jobId, hasSrt, hasVtt, hasBurnedVideo, captionStyle, subtitles, script } = state;
+  const { usage } = useUsage();
   const [isExporting, setIsExporting] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleExport = async () => {
     if (!jobId || isExporting) return;
@@ -197,62 +202,78 @@ function ActionBar() {
   };
 
   return (
-    <div className="flex items-center justify-between gap-1 border-b border-white/[0.07] bg-[#0c0c0c] px-2 py-1.5 sm:px-3">
-      <div className="hidden items-center gap-1.5 sm:flex">
-        <ActionBtn label="REPLACE" />
-        <ActionBtn label="SAFE ZONE" />
-      </div>
-      <div className="ml-auto flex flex-wrap items-center justify-end gap-1 sm:ml-0 sm:gap-1.5">
-        {hasSrt && (
-          <a
-            href={`${API_BASE}/api/job/${jobId}/subtitles/srt`}
-            className="border border-white/[0.12] px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] text-white/50 uppercase transition-colors hover:border-accent/60 hover:text-accent sm:px-2.5 sm:text-[0.58rem]"
-          >
-            ↓ SRT
-          </a>
-        )}
-        {hasVtt && (
-          <a
-            href={`${API_BASE}/api/job/${jobId}/subtitles/vtt`}
-            className="border border-white/[0.12] px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] text-white/50 uppercase transition-colors hover:border-accent/60 hover:text-accent sm:px-2.5 sm:text-[0.58rem]"
-          >
-            ↓ VTT
-          </a>
-        )}
-        {jobId && (
-          <a
-            href={`${API_BASE}/api/job/${jobId}/subtitles/ass`}
-            className="border border-white/[0.12] px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] text-white/50 uppercase transition-colors hover:border-accent/60 hover:text-accent sm:px-2.5 sm:text-[0.58rem]"
-            title="Download styled ASS subtitles"
-          >
-            ↓ ASS
-          </a>
-        )}
-        <button
-          onClick={handleExport}
-          disabled={isExporting}
-          className={cn(
-            "flex items-center gap-1 border px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] uppercase transition-all sm:px-3 sm:text-[0.58rem]",
-            hasBurnedVideo
-              ? "border-accent bg-accent text-accent-foreground hover:opacity-90"
-              : "border-accent/60 bg-accent/20 text-accent hover:bg-accent hover:text-accent-foreground",
-            isExporting && "opacity-50 cursor-wait",
+    <>
+      <div className="flex items-center justify-between gap-1 border-b border-white/[0.07] bg-[#0c0c0c] px-2 py-1.5 sm:px-3">
+        <div className="hidden items-center gap-1.5 sm:flex">
+          <ActionBtn label="REPLACE" />
+          <ActionBtn label="SAFE ZONE" />
+        </div>
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1 sm:ml-0 sm:gap-1.5">
+          {usage.plan === "free" && (
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="flex items-center gap-1 border border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-orange-500/15 px-2 py-1 font-mono text-[0.52rem] font-semibold tracking-[0.12em] text-amber-400 uppercase transition-all hover:border-amber-400 hover:bg-amber-500/25 sm:px-2.5 sm:text-[0.58rem]"
+              title="Upgrade to Creator Pro for Watermark-free 4K exports and unlimited storage"
+            >
+              <Zap className="h-3 w-3 fill-amber-400 text-amber-400" />
+              <span>UPGRADE PRO</span>
+            </button>
           )}
-        >
-          {isExporting ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span className="hidden sm:inline">BURNING...</span>
-              <span className="sm:hidden">...</span>
-            </>
-          ) : hasBurnedVideo ? (
-            "↓ EXPORT"
-          ) : (
-            "EXPORT"
+          {hasSrt && (
+            <a
+              href={`${API_BASE}/api/job/${jobId}/subtitles/srt`}
+              className="border border-white/[0.12] px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] text-white/50 uppercase transition-colors hover:border-accent/60 hover:text-accent sm:px-2.5 sm:text-[0.58rem]"
+            >
+              ↓ SRT
+            </a>
           )}
-        </button>
+          {hasVtt && (
+            <a
+              href={`${API_BASE}/api/job/${jobId}/subtitles/vtt`}
+              className="border border-white/[0.12] px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] text-white/50 uppercase transition-colors hover:border-accent/60 hover:text-accent sm:px-2.5 sm:text-[0.58rem]"
+            >
+              ↓ VTT
+            </a>
+          )}
+          {jobId && (
+            <a
+              href={`${API_BASE}/api/job/${jobId}/subtitles/ass`}
+              className="border border-white/[0.12] px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] text-white/50 uppercase transition-colors hover:border-accent/60 hover:text-accent sm:px-2.5 sm:text-[0.58rem]"
+              title="Download styled ASS subtitles"
+            >
+              ↓ ASS
+            </a>
+          )}
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className={cn(
+              "flex items-center gap-1 border px-2 py-1 font-mono text-[0.52rem] tracking-[0.12em] uppercase transition-all sm:px-3 sm:text-[0.58rem]",
+              hasBurnedVideo
+                ? "border-accent bg-accent text-accent-foreground hover:opacity-90"
+                : "border-accent/60 bg-accent/20 text-accent hover:bg-accent hover:text-accent-foreground",
+              isExporting && "opacity-50 cursor-wait",
+            )}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="hidden sm:inline">BURNING...</span>
+                <span className="sm:hidden">...</span>
+              </>
+            ) : hasBurnedVideo ? (
+              "↓ EXPORT"
+            ) : (
+              "EXPORT"
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
+    </>
   );
 }
 

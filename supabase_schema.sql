@@ -191,3 +191,29 @@ create policy "Users can update their own uploaded videos"
   on storage.objects for update
   to authenticated
   using (bucket_id = 'videos' and (auth.uid())::text = (storage.foldername(name))[1]);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 7. PAYMENTS & SUBSCRIPTIONS (Razorpay Integration)
+-- ─────────────────────────────────────────────────────────────────────────────
+create table if not exists public.payments (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) on delete set null,
+  razorpay_order_id text not null,
+  razorpay_payment_id text not null,
+  amount numeric(10, 2) not null default 199.00,
+  currency text not null default 'INR',
+  plan text not null default 'creator_pro',
+  status text not null default 'captured',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.payments enable row level security;
+
+drop policy if exists "Users can view their own payments" on public.payments;
+create policy "Users can view their own payments"
+  on public.payments for select
+  using (auth.uid() = user_id);
+
+create index if not exists idx_payments_user_id on public.payments(user_id);
+create index if not exists idx_payments_razorpay_order on public.payments(razorpay_order_id);
+
