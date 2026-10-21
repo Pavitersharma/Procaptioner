@@ -6,6 +6,6 @@ This repository contains **ProCaptioner**, an AI-powered video captions and subt
 
 ## Conventions
 
-- **Frontend (`src/`)**: Built using TanStack Start, React 19, TypeScript, and Tailwind CSS v4.
+- **Frontend (`client/src/`)**: Built using TanStack Start, React 19, TypeScript, and Tailwind CSS v4.
 - **Backend (`backend/`)**: Python pipeline for Whisper transcription, alignment, translation, and subtitle burning.
 - **Code Quality**: Keep code clean, type-safe, and modular. Ensure UI remains fast, modern, and dark-theme optimized.
