@@ -38,23 +38,28 @@ FFMPEG_BIN = "ffmpeg"
 FFPROBE_BIN = "ffprobe"
 
 # ─── Server ───────────────────────────────────────────────────────────────────
-API_HOST = "0.0.0.0"
-API_PORT = 8000
-CORS_ORIGINS = [
-    "http://localhost:5173",   # Vite dev server
-    "http://localhost:3000",
-    "http://localhost:8080",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:8080",
-]
-
-# ─── ASR Configuration ────────────────────────────────────────────────────────
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("PORT", os.getenv("API_PORT", 8000)))
+
+_env_cors = os.getenv("CORS_ORIGINS", "")
+if _env_cors:
+    CORS_ORIGINS = [o.strip() for o in _env_cors.split(",") if o.strip()]
+else:
+    CORS_ORIGINS = [
+        "http://localhost:5173",   # Vite dev server
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080",
+        "*",
+    ]
+
+# ─── ASR Configuration ────────────────────────────────────────────────────────
 ASR_PROVIDER = os.getenv("ASR_PROVIDER", "whisper")  # 'deepgram' or 'whisper'
 ASR_COMPARE_PROVIDER = os.getenv("ASR_COMPARE_PROVIDER", None)
 

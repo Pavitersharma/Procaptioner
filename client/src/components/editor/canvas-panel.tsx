@@ -157,7 +157,7 @@ function SubtitleOverlay() {
 
 // ─── Action Bar (above video) ─────────────────────────────────────────────────
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = (import.meta.env.VITE_API_URL as string) || "http://localhost:8000";
 
 function ActionBar() {
   const { state, dispatch } = useEditor();
