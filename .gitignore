@@ -14,9 +14,11 @@ dist-ssr
 .vinxi
 .tanstack/**
 .nitro
-*.local
 .env
 .env.*
+!.env.example
+!client/.env.example
+!backend/.env.example
 *.env
 backend/.env
 
